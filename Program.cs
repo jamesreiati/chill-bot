@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Discord.WebSocket;
 using log4net;
 using log4net.Config;
+using Reiati.ChillBot.EventHandlers;
 
 namespace Reiati.ChillBot
 {
@@ -24,6 +25,11 @@ namespace Reiati.ChillBot
         private static DiscordShardedClient client;
 
         /// <summary>
+        /// The event handler used to handle messages.
+        /// </summary>
+        private static GeneralMessageHandler eventHandler;
+
+        /// <summary>
         /// Main entry point for the application.
         /// </summary>
         public static void Main(string[] args)
@@ -40,8 +46,8 @@ namespace Reiati.ChillBot
                 delegate(object sender, ConsoleCancelEventArgs args)
                 {
                     Program.logger.Info("Shutdown initiated - console");
-                    client?.StopAsync().GetAwaiter().GetResult();
-                    client.Dispose();
+                    Program.client?.StopAsync().GetAwaiter().GetResult();
+                    Program.client.Dispose();
                 };
 
             try
@@ -74,7 +80,7 @@ namespace Reiati.ChillBot
 
             XmlConfigurator.Configure(configFile);
             Program.logger = LogManager.GetLogger("Bootstrap");
-            Program.logger.InfoFormat("Logging configuration: {0}", configFile.FullName);
+            Program.logger.InfoFormat("Logger initialized;{{loggingConfig:{0}}}", configFile.FullName);
             return true;
         }
 
@@ -91,7 +97,7 @@ namespace Reiati.ChillBot
 
             var client = new DiscordShardedClient(config);
             client.Log += LogAsyncFromClient;
-            client.ShardConnected += ReadyHandlerAsync;
+            client.ShardConnected += ReadyHandler;
 
             string token = await File.ReadAllTextAsync(HardCoded.Discord.TokenFilePath);
 
@@ -105,12 +111,18 @@ namespace Reiati.ChillBot
         /// </summary>
         /// <param name="shard">The shard which is ready.</param>
         /// <returns>When the task has completed.</returns>
-        private static async Task ReadyHandlerAsync(DiscordSocketClient shard)
+        private static Task ReadyHandler(DiscordSocketClient shard)
         {
-            Program.logger.InfoFormat("Shard ready - {{shardId:{0}}}", shard.ShardId);
-
+            Program.logger.InfoFormat("Shard ready;{{shardId:{0}}}", shard.ShardId);
+            var eventHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
+            Program.eventHandler = eventHandler;
+            
             shard.Log += LogAsyncFromShard;
-            await Task.Delay(0);
+            shard.MessageReceived += eventHandler.HandleMessageReceived;
+            // TODO: shard.ReactionAdded
+            // TODO: shard.UserJoined
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
