@@ -1,5 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Discord.WebSocket;
 using log4net;
 using log4net.Config;
 
@@ -16,6 +19,11 @@ namespace Reiati.ChillBot
         private static ILog logger;
 
         /// <summary>
+        /// The client(s) used to connect to discord.
+        /// </summary>
+        private static DiscordShardedClient client;
+
+        /// <summary>
         /// Main entry point for the application.
         /// </summary>
         public static void Main(string[] args)
@@ -27,8 +35,27 @@ namespace Reiati.ChillBot
                     HardCoded.Logging.ConfigFilePath));
                 return;
             }
-            
-            Program.logger.Debug("test");
+
+            Console.CancelKeyPress += 
+                delegate(object sender, ConsoleCancelEventArgs args)
+                {
+                    Program.logger.Info("Shutdown initiated - console");
+                    client?.StopAsync().GetAwaiter().GetResult();
+                    client.Dispose();
+                };
+
+            try
+            {
+                Program.InitializeClient().GetAwaiter().GetResult();
+                Task.Delay(Timeout.Infinite).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                Program.logger.ErrorFormat(
+                    "Shutdown initiated - exception thrown;{{message:{0},\nstack:{1}}}",
+                    e.Message,
+                    e.StackTrace);
+            }
         }
 
         /// <summary>
@@ -49,6 +76,63 @@ namespace Reiati.ChillBot
             Program.logger = LogManager.GetLogger("Bootstrap");
             Program.logger.InfoFormat("Logging configuration: {0}", configFile.FullName);
             return true;
+        }
+
+        /// <summary>
+        /// Initializes the clients.
+        /// </summary>
+        /// <returns>When the clients have been initialized and started.</returns>
+        private static async Task InitializeClient()
+        {
+            var config = new DiscordSocketConfig
+            {
+                TotalShards = 1,
+            };
+
+            var client = new DiscordShardedClient(config);
+            client.Log += LogAsyncFromClient;
+            client.ShardConnected += ReadyHandlerAsync;
+
+            string token = await File.ReadAllTextAsync(HardCoded.Discord.TokenFilePath);
+
+            await client.LoginAsync(Discord.TokenType.Bot, token.Trim());
+            await client.StartAsync();
+            Program.client = client;
+        }
+
+        /// <summary>
+        /// Logs to the console when a shard is ready.
+        /// </summary>
+        /// <param name="shard">The shard which is ready.</param>
+        /// <returns>When the task has completed.</returns>
+        private static async Task ReadyHandlerAsync(DiscordSocketClient shard)
+        {
+            Program.logger.InfoFormat("Shard ready - {{shardId:{0}}}", shard.ShardId);
+
+            shard.Log += LogAsyncFromShard;
+            await Task.Delay(0);
+        }
+
+        /// <summary>
+        /// Forwards all client logs to the console.
+        /// </summary>
+        /// <param name="log">The client log.</param>
+        /// <returns>When the task has completed.</returns>
+        private static Task LogAsyncFromClient(Discord.LogMessage log)
+        {
+            Program.logger.DebugFormat("Client log - {0}", log.ToString());
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Fowards all shard logs to the console.
+        /// </summary>
+        /// <param name="log">The shard log.</param>
+        /// <returns>When the task has completed.</returns>
+        private static Task LogAsyncFromShard(Discord.LogMessage log)
+        {
+            Program.logger.DebugFormat("Shard log - {0}", log.ToString());
+            return Task.CompletedTask;
         }
     }
 }
