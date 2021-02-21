@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Reiati.ChillBot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="2.2.0" />
+    <PackageReference Include="log4net" Version="2.0.12" />
+    <!--
+      System.Text.Encoding.CodePages is required for colored console output in log4net in .NET Core 3.1. More
+      information can be found here: https://issues.apache.org/jira/browse/LOG4NET-658
+    -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>
