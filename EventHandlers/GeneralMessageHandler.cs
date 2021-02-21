@@ -16,6 +16,13 @@ namespace Reiati.ChillBot.EventHandlers
     public class GeneralMessageHandler
     {
         /// <summary>
+        /// Object pool of <see cref="CanHandleResult"/>s.
+        /// </summary>
+        private static ObjectPool<CanHandleResult> handleResultPool = new ObjectPool<CanHandleResult>(
+            tFactory: () => new CanHandleResult(),
+            preallocate: 13);
+
+        /// <summary>
         /// Emoji sent upon an attempt to perform an action by a user with no permission to do so.
         /// </summary>
         private static readonly Emoji NoPermissionEmoji = new Emoji("⛔");
@@ -147,37 +154,47 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When the message has been handled.</returns>
         private async Task HandleMessage(SocketMessage message, IReadOnlyList<IMessageHandler> handlers)
         {
-            bool wasHandled = false;
-
-            for (int i = 0; i < handlers.Count && !wasHandled; i += 1)
+            var handleResult = GeneralMessageHandler.handleResultPool.Get();
+            try
             {
-                var handler = handlers[i];
-                var canHandle = await handler.CanHandleMessage(message);
-                switch (canHandle.Status)
+                bool wasHandled = false;
+
+                for (int i = 0; i < handlers.Count && !wasHandled; i += 1)
                 {
-                    case CanHandleResult.ResultStatus.Handleable:
-                        wasHandled = true;
-                        await handler.HandleMessage(message, canHandle.HandleCache);
-                    break;
+                    var handler = handlers[i];
+                    var canHandle = await handler.CanHandleMessage(message, recycleResult: handleResult);
+                    switch (canHandle.Status)
+                    {
+                        case CanHandleResult.ResultStatus.Handleable:
+                            wasHandled = true;
+                            await handler.HandleMessage(message, canHandle.HandleCache);
+                        break;
 
-                    case CanHandleResult.ResultStatus.TimedOut:
-                        this.logger.WarnFormat("Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
-                            handler.GetType().Name,
-                            canHandle.TimeOutPeriod,
-                            message.Content);
-                        continue;
+                        case CanHandleResult.ResultStatus.TimedOut:
+                            this.logger.WarnFormat(
+                                "Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
+                                handler.GetType().Name,
+                                canHandle.TimeOutPeriod,
+                                message.Content);
+                            continue;
 
-                    case CanHandleResult.ResultStatus.Unhandleable:
-                        continue;
+                        case CanHandleResult.ResultStatus.Unhandleable:
+                            continue;
 
-                    default:
-                        throw new NotImplementedException(canHandle.Status.ToString());
+                        default:
+                            throw new NotImplementedException(canHandle.Status.ToString());
+                    }
+                }
+
+                if (!wasHandled)
+                {
+                    await message.AddReactionAsync(NoMatchEmoji);
                 }
             }
-
-            if (!wasHandled)
+            finally
             {
-                await message.AddReactionAsync(NoMatchEmoji);
+                handleResult.ClearReferences();
+                GeneralMessageHandler.handleResultPool.Return(handleResult);
             }
         }
     }
