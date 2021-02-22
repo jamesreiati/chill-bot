@@ -36,7 +36,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// A logger.
         /// </summary>
-        private readonly ILog logger;
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(GeneralMessageHandler));
         
         /// <summary>
         /// The id assigned to this bot.
@@ -59,7 +59,6 @@ namespace Reiati.ChillBot.EventHandlers
         /// <param name="botId">The id assigned to this bot.</param>
         public GeneralMessageHandler(Snowflake botId)
         {
-            this.logger = LogManager.GetLogger(typeof(GeneralMessageHandler));
             this.botId = botId;
             this.dmHandlers = new List<IMessageHandler>()
             {
@@ -79,7 +78,7 @@ namespace Reiati.ChillBot.EventHandlers
         {
             if (message == null)
             {
-                this.logger.Info("Message dropped - client emitted a null message");
+                Logger.Info("Message dropped - client emitted a null message");
                 return;
             }
 
@@ -171,7 +170,7 @@ namespace Reiati.ChillBot.EventHandlers
                         break;
 
                         case CanHandleResult.ResultStatus.TimedOut:
-                            this.logger.WarnFormat(
+                            Logger.WarnFormat(
                                 "Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
                                 handler.GetType().Name,
                                 canHandle.TimeOutPeriod,

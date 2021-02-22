@@ -32,18 +32,11 @@ namespace Reiati.ChillBot.EventHandlers
         private static readonly Emoji SuccessEmoji = new Emoji("✅");
 
         /// <summary>
-        /// A logger.
-        /// </summary>
-        private readonly ILog logger;
-
-        /// <summary>
         /// Constructs a <see cref="NewOptinGuildHandler"/>.
         /// </summary>
         public NewOptinGuildHandler()
             : base(NewOptinGuildHandler.matcher)
-        {
-            this.logger = LogManager.GetLogger(typeof(NewOptinGuildHandler));
-        }
+        { }
 
         /// <summary>
         /// Implementers should derive from this to handle a matched message.
