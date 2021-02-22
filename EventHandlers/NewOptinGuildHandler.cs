@@ -16,10 +16,13 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// The matcher for detecting the phrases:
         /// - <@123> new opt-in {1} {2}
+        /// - <@123> new opt-in {1}
+        /// - <@123> new opt in {1} {2}
+        /// - <@123> new optin {1} {2}
         /// And captures the channel name into group 1, and the description {} into group 2.
         /// </summary>
         private static Regex matcher = new Regex(
-            @"^\s*\<\@\!?\d+\>\s*new\s+opt-?in\s+(\S+)\s+(.*)$",
+            @"^\s*\<\@\!?\d+\>\s*new\s+opt(?:-|\s)?in\s+(\S+)\s*(.*)$",
             RegexOptions.IgnoreCase,
             HardCoded.Handlers.DefaultRegexTimeout);
 
@@ -52,7 +55,15 @@ namespace Reiati.ChillBot.EventHandlers
         {
             var messageChannel = message.Channel as SocketGuildChannel;
             var channelName = handleCache.Groups[1].Captures[0].Value;
-            var description = handleCache.Groups[2].Captures[0].Value;
+
+            if (!NewOptinGuildHandler.TryGetSecondMatch(handleCache, out string description))
+            {
+                await message.Channel.SendMessageAsync(
+                    text: "The new channel's description must be something meaningful. Ideally something that explains what it is.",
+                    messageReference: message.Reference);
+                return;
+            }
+
             var guild = messageChannel.Guild;
 
             var success = await OptinChannel.TryCreate(
@@ -71,6 +82,24 @@ namespace Reiati.ChillBot.EventHandlers
                     text: "Something went wrong trying to do this for you. Contact your server admin for more help.",
                     messageReference: message.Reference);
             }
+        }
+
+        /// <summary>
+        /// Tries to get the second match, returns false if that match does not exist, or it is white space.
+        /// </summary>
+        /// <param name="match">Any regex match. May not be null.</param>
+        /// <param name="contents">The contents of the match.</param>
+        /// <returns>True if there was a second match, and its contents were not white space.</returns>
+        private static bool TryGetSecondMatch(Match match, out string contents)
+        {
+            contents = null;
+            if (match.Groups.Count < 3)
+            {
+                return false;
+            }
+
+            contents = match.Groups[2].Captures[0].Value;
+            return !string.IsNullOrWhiteSpace(contents);
         }
     }
 }
