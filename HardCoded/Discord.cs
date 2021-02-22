@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Reiati.ChillBot.Tools;
 
 namespace Reiati.ChillBot.HardCoded
@@ -11,7 +12,7 @@ namespace Reiati.ChillBot.HardCoded
         /// <summary>
         /// The path to the token file.
         /// </summary>
-        public const string TokenFilePath = "./discordtoken.txt";
+        public static readonly string TokenFilePath = Path.Combine(".", "discordtoken.txt");
 
         /// <summary>
         /// The id of the allowed creators.

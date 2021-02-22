@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Reiati.ChillBot.HardCoded
 {
@@ -10,6 +11,6 @@ namespace Reiati.ChillBot.HardCoded
         /// <summary>
         /// The path to the config file.
         /// </summary>
-        public const string ConfigFilePath = "./log4net.config.xml";
+        public static readonly string ConfigFilePath = Path.Combine(".", "log4net.config.xml");
     }
 }

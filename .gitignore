@@ -101,3 +101,6 @@ _ReSharper*/
 # Dev Configuration Files
 log4net.config.xml
 discordtoken.txt
+
+# Runtime Data
+file-data/
