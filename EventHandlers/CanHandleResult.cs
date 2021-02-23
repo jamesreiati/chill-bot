@@ -5,7 +5,7 @@ namespace Reiati.ChillBot.EventHandlers
     /// <summary>
     /// The response of a MessageHandler's CanHandle method.
     /// </summary>
-    /// <remarks>Designed to be poolable. Mimics the functionality of a discriminated union.</remarks>
+    /// <remarks>Designed to be poolable. Mimics the structure of a discriminated union.</remarks>
     public sealed class CanHandleResult
     {
         /// <summary>

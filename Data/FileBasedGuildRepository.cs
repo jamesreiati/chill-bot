@@ -43,10 +43,11 @@ namespace Reiati.ChillBot.Data
         /// Checkout out or create a <see cref="Guild"/> if one does not exist.
         /// </summary>
         /// <param name="guildId">An id representing a guild.</param>
+        /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The borrowed guild.</returns>
-        public async Task<BorrowedGuild?> TryCheckout(Snowflake guildId)
+        public async Task<CheckoutResult> Checkout(Snowflake guildId, CheckoutResult recycleResult = null)
         {
-            // TODO: Make a discriminated union like return type which can return more useful information.
+            var retVal = recycleResult ?? new CheckoutResult();
 
             try
             {
@@ -62,20 +63,23 @@ namespace Reiati.ChillBot.Data
                 var jsonReader = new JsonTextReader(streamReader);
                 var guild = FileBasedGuildRepository.FromJToken(guildId, await JObject.ReadFromAsync(jsonReader));
 
-                return new BorrowedGuild(
-                    guild: guild,
+                retVal.ToSuccess(new Borrowed<Guild>(
+                    isntance: guild,
                     data: sourceStream,
-                    onReturn: FileBasedGuildRepository.ReturnGuild);
+                    onReturn: FileBasedGuildRepository.ReturnGuild));
+                return retVal;
             }
             catch (FileNotFoundException)
             {
-                return null;
+                retVal.ToDoesNotExist();
+                return retVal;
             }
             catch (IOException e)
             {
                 if (e.HResult == FileBasedGuildRepository.LockedFileHRResult)
                 {
-                    return null;
+                    retVal.ToLocked();
+                    return retVal;
                 }
                 else
                 {
@@ -163,34 +167,40 @@ namespace Reiati.ChillBot.Data
         }
 
         /// <summary>
-        /// The action invoked when a <see cref="BorrowedGuild"/> is being returned.
+        /// The action invoked when a <see cref="Borrowed<T>"/> is being returned.
         /// </summary>
         /// <param name="guild">The guild that's being returned. May be null if the guild borrowed is null.</param>
         /// <param name="data">
-        /// The object placed into the data field at the construction of the <see cref="BorrowedGuild"/>.
+        /// The object placed into the data field at the construction of the <see cref="Borrowed<T>"/>.
         /// </param>
-        private static void ReturnGuild(Guild guild, object data)
+        /// <param name="commit">
+        /// True if the user wanted to commit the changes, false if they wanted them discarded.
+        /// </param>
+        private static void ReturnGuild(Guild guild, object data, bool commit)
         {
             var sourceStream = (FileStream)data;
-            sourceStream.Seek(0, SeekOrigin.Begin);
-            sourceStream.SetLength(0);
+            if (commit)
+            {
+                sourceStream.Seek(0, SeekOrigin.Begin);
+                sourceStream.SetLength(0);
 
-            Formatting formatting;
-            #if DEBUG
-            formatting = Formatting.Indented;
-            #else
-            formatting = Formatting.None;
-            #endif
+                Formatting formatting;
+                #if DEBUG
+                formatting = Formatting.Indented;
+                #else
+                formatting = Formatting.None;
+                #endif
 
-            // TODO: In theory, we shouldn't need to copy to a string, and then serialize to file.
-            //   Figure out how to serialize directly to file.
-            var content = JsonConvert.SerializeObject(
-                FileBasedGuildRepository.ToJToken(guild),
-                formatting);
+                // TODO: In theory, we shouldn't need to copy to a string, and then serialize to file.
+                //   Figure out how to serialize directly to file.
+                var content = JsonConvert.SerializeObject(
+                    FileBasedGuildRepository.ToJToken(guild),
+                    formatting);
 
-            var writer = new StreamWriter(sourceStream);
-            writer.Write(content);
-            writer.Flush();
+                var writer = new StreamWriter(sourceStream);
+                writer.Write(content);
+                writer.Flush();
+            }
 
             sourceStream.Dispose();
         }
@@ -214,6 +224,73 @@ namespace Reiati.ChillBot.Data
 
             public const string OptinCreatorsRoles = "OptinCreatorsRoles";
             public const string OptinParentCatgory = "OptinParentCatgory";
+        }
+
+        /// <summary>
+        /// The result of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
+        /// </summary>
+        /// <remarks>Designed to be poolable. Mimics the structure of a discriminated union.</remarks>
+        public sealed class CheckoutResult
+        {
+            /// <summary>
+            /// The type of this result.
+            /// </summary>
+            public ResultType Result { get; private set; }
+
+            /// <summary>
+            /// [<see cref="ResultType.Success"/>] The <see cref="Data.Guild"/> associated with the given id.
+            /// </summary>
+            public Borrowed<Guild> BorrowedGuild { get; private set; }
+
+            /// <summary>
+            /// Set this result to the <see cref="ResultType.Success"/> type.
+            /// </summary>
+            /// <param name="borrowedGuild">The borrowed guild to return.</param>
+            public void ToSuccess(Borrowed<Guild> borrowedGuild)
+            {
+                this.Result = ResultType.Success;
+                this.BorrowedGuild = borrowedGuild;
+            }
+
+            /// <summary>
+            /// Set this result to the <see cref="ResultType.DoesNotExist"/> type.
+            /// </summary>
+            public void ToDoesNotExist()
+            {
+                this.Result = ResultType.DoesNotExist;
+            }
+
+            /// <summary>
+            /// Set this result to the <see cref="ResultType.Locked"/> type.
+            /// </summary>
+            public void ToLocked()
+            {
+                this.Result = ResultType.Locked;
+            }
+
+            /// <summary>
+            /// Drops all references to objects.
+            /// </summary>
+            /// <remarks>Useful call before returning to a pool.</remarks>
+            public void ClearReferences()
+            {
+                this.BorrowedGuild = null;
+            }
+
+            /// <summary>
+            /// Result type of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
+            /// </summary>
+            public enum ResultType
+            {
+                /// <summary>A <see cref="Data.Guild"/> was successfully checked out.</summary>
+                Success,
+
+                /// <summary>No guild was associated with the given guild id.</summary>
+                DoesNotExist,
+
+                /// <summary>This guild is currently in use, try again later.</summary>
+                Locked,
+            }
         }
     }
 }

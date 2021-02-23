@@ -3,10 +3,10 @@ using System;
 namespace Reiati.ChillBot.Data
 {
     /// <summary>
-    /// A guild which has been checked out or borrowed and must be returned.
+    /// A T which has been checked out or borrowed and must be returned.
     /// Return using <see cref="IDisposable.Dispose"/>.
     /// </summary>
-    public readonly struct BorrowedGuild : IDisposable
+    public class Borrowed<T> : IDisposable
     {
         /// <summary>
         /// Arbitrary data provided by the the lender/repository and provided back to it upon return.
@@ -16,32 +16,38 @@ namespace Reiati.ChillBot.Data
         /// <summary>
         /// Arbitrary action invoked upon return.
         /// </summary>
-        private readonly Action<Guild, object> onReturn;
+        private readonly Action<T, object, bool> onReturn;
 
         /// <summary>
-        /// The guild being borrowed.
+        /// Constructs a <see cref="Borrowed<T>"/>.
         /// </summary>
-        public readonly Guild guild;
-
-        /// <summary>
-        /// Constructs a <see cref="BorrowedGuild"/>.
-        /// </summary>
-        /// <param name="guild">The guild being borrowed.</param>
+        /// <param name="isntance">The T being borrowed.</param>
         /// <param name="data">
         /// Arbitrary data provided by the the lender/repository and provided back to it upon return.
         /// </param>
         /// <param name="onReturn">Arbitrary action invoked upon return.</param>
-        public BorrowedGuild(Guild guild, object data, Action<Guild, object> onReturn)
+        public Borrowed(T isntance, object data, Action<T, object, bool> onReturn)
         {
-            this.guild = guild;
+            this.Instance = isntance;
             this.data = data;
             this.onReturn = onReturn;
         }
 
+        /// <summary>
+        /// The T being borrowed.
+        /// </summary>
+        public T Instance { get; }
+
+        /// <summary>
+        /// Whether or not to commit the changes on the object after return. (Default to true.)
+        /// </summary>
+        /// <value>True to commit, false to discard.</value>
+        public bool Commit { get; set; } = true;
+
         /// <inheritdoc/>
         void IDisposable.Dispose()
         {
-            onReturn?.Invoke(this.guild, this.data);
+            onReturn?.Invoke(this.Instance, this.data, this.Commit);
         }
     }
 }

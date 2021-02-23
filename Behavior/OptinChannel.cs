@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Reiati.ChillBot.Tools;
+using Reiati.ChillBot.Data;
 using Discord;
 using Discord.WebSocket;
 
@@ -22,23 +23,31 @@ namespace Reiati.ChillBot.Behavior
         /// <summary>
         /// Creates an opt-in channel in the given guild.
         /// </summary>
-        /// <param name="guild">The connection to the guild this channel is being created in. May not be null.</param>
-        /// <param name="optinsCategory">An id representing the category where opt-ins are created.</param>
+        /// <param name="guildConnection">
+        /// The connection to the guild this channel is being created in. May not be null.
+        /// </param>
+        /// <param name="guildData">Information about this guild.</param>
         /// <param name="channelName">The requested name of the new channel.</param>
         /// <param name="description">The requested description of the new channel.</param>
         /// <returns>Whether or not the creation of the opt-in channel was successful.</returns>
         public static async Task<bool> TryCreate(
-            SocketGuild guild,
-            Snowflake optinsCategory,
+            SocketGuild guildConnection,
+            Guild guildData,
             string channelName,
             string description)
         {
-            var createdTextChannel = await guild.CreateTextChannelAsync(channelName, settings =>
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                return false;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            var createdTextChannel = await guildConnection.CreateTextChannelAsync(channelName, settings =>
             {
                 settings.CategoryId = optinsCategory.Value;
                 settings.Topic = description;
             });
-            var createdRole = await guild.CreateRoleAsync(
+            var createdRole = await guildConnection.CreateRoleAsync(
                 name: OptinChannel.GetRoleName(createdTextChannel.Id),
                 permissions: null,
                 color: null,

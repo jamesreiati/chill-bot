@@ -20,7 +20,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// </summary>
         private static ObjectPool<CanHandleResult> handleResultPool = new ObjectPool<CanHandleResult>(
             tFactory: () => new CanHandleResult(),
-            preallocate: 13);
+            preallocate: 3);
 
         /// <summary>
         /// Emoji sent upon an attempt to perform an action by a user with no permission to do so.

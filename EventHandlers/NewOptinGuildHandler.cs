@@ -3,8 +3,9 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
-using log4net;
 using Reiati.ChillBot.Behavior;
+using Reiati.ChillBot.Data;
+using Reiati.ChillBot.Tools;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -13,6 +14,14 @@ namespace Reiati.ChillBot.EventHandlers
     /// </summary>
     public class NewOptinGuildHandler : AbstractRegexHandler
     {
+        /// <summary>
+        /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
+        /// </summary>
+        private static ObjectPool<FileBasedGuildRepository.CheckoutResult> checkoutResultPool =
+            new ObjectPool<FileBasedGuildRepository.CheckoutResult>(
+                tFactory: () => new FileBasedGuildRepository.CheckoutResult(),
+                preallocate: 3);
+
         /// <summary>
         /// The matcher for detecting the phrases:
         /// - <@123> new opt-in {1} {2}
@@ -59,21 +68,57 @@ namespace Reiati.ChillBot.EventHandlers
 
             var guild = messageChannel.Guild;
 
-            var success = await OptinChannel.TryCreate(
-                guild: guild,
-                optinsCategory: HardCoded.Discord.OptInsCategory,
-                channelName: channelName,
-                description: description);
+            bool success;
+            var checkoutResult = checkoutResultPool.Get();
+            try
+            {
+                checkoutResult = await FileBasedGuildRepository.Instance.Checkout(guild.Id, checkoutResult);
+                switch (checkoutResult.Result)
+                {
+                    case FileBasedGuildRepository.CheckoutResult.ResultType.Success:
+                        using (var borrowedGuild = checkoutResult.BorrowedGuild)
+                        {
+                            var guildData = borrowedGuild.Instance;
+                            success = await OptinChannel.TryCreate(
+                                guildConnection: guild,
+                                guildData: guildData,
+                                channelName: channelName,
+                                description: description);
+                            borrowedGuild.Commit = success;
 
-            if (success)
-            {
-                await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
+                            if (success)
+                            {
+                                await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
+                            }
+                            else
+                            {
+                                await message.Channel.SendMessageAsync(
+                                    text: "Something went wrong trying to do this for you. Contact your server admin for more help.",
+                                    messageReference: message.Reference);
+                            }
+                        }
+                    break;
+
+                    case FileBasedGuildRepository.CheckoutResult.ResultType.DoesNotExist:
+                        await message.Channel.SendMessageAsync(
+                            text: "This server has not been configured for Chill Bot yet.",
+                            messageReference: message.Reference);
+                    break;
+
+                    case FileBasedGuildRepository.CheckoutResult.ResultType.Locked:
+                        await message.Channel.SendMessageAsync(
+                            text: "Please try again.",
+                            messageReference: message.Reference);
+                    break;
+
+                    default:
+                        throw new NotImplementedException(checkoutResult.Result.ToString());
+                }
             }
-            else
+            finally
             {
-                await message.Channel.SendMessageAsync(
-                    text: "Something went wrong trying to do this for you. Contact your server admin for more help.",
-                    messageReference: message.Reference);
+                checkoutResult.ClearReferences();
+                checkoutResultPool.Return(checkoutResult);
             }
         }
 
