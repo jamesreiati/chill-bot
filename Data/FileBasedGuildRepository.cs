@@ -95,9 +95,38 @@ namespace Reiati.ChillBot.Data
             JObject dataObj = data.ToObject<JObject>();
             var retVal = new Guild(guildId);
 
-            if (dataObj.TryGetValue(SerializationFields.AllowedCreatorsRole, out JToken allowedCreatorsRoleToken))
+            if (dataObj.TryGetValue(SerializationFields.OptinCreatorsRoles, out JToken optinCreatorsRolesToken))
             {
-                retVal.AllowedCreatorsRole = new Snowflake(allowedCreatorsRoleToken.ToObject<UInt64>());
+                if (optinCreatorsRolesToken.Type != JTokenType.Array)
+                {
+                    throw new InvalidDataException(
+                        $"{SerializationFields.OptinCreatorsRoles} is expected to be an array type.");
+                }
+
+                var optinCreatorsRolesArray = optinCreatorsRolesToken.ToObject<JArray>();
+                foreach (var roleToken in optinCreatorsRolesArray)
+                {
+                    if (roleToken.Type != JTokenType.Integer)
+                    {
+                        throw new InvalidDataException(
+                            $"Each member of {SerializationFields.OptinCreatorsRoles} is expected to be an integer type.");
+                    }
+
+                    var roleId = new Snowflake(roleToken.ToObject<UInt64>());
+                    retVal.OptinCreatorsRoles.Add(roleId);
+                }
+            }
+
+            if (dataObj.TryGetValue(SerializationFields.OptinParentCatgory, out JToken optinParentCatgory))
+            {
+                if (optinParentCatgory.Type != JTokenType.Integer)
+                {
+                    throw new InvalidDataException(
+                        $"{SerializationFields.OptinCreatorsRoles} is expected to be an integer type.");
+                }
+
+                var categoryId = new Snowflake(optinParentCatgory.ToObject<UInt64>());
+                retVal.OptinParentCategory = categoryId;
             }
 
             return retVal;
@@ -112,11 +141,22 @@ namespace Reiati.ChillBot.Data
         {
             JObject retVal = new JObject();
 
-            if (guild.AllowedCreatorsRole.HasValue)
+            if (guild.OptinCreatorsRoles.Count > 0)
+            {
+                var optinCreatorsRolesArray = new JArray();
+                foreach (var roleId in guild.OptinCreatorsRoles)
+                {
+                    optinCreatorsRolesArray.Add(new JValue(roleId.Value));
+                }
+
+                retVal.Add(SerializationFields.OptinCreatorsRoles, optinCreatorsRolesArray);
+            }
+
+            if (guild.OptinParentCategory.HasValue)
             {
                 retVal.Add(
-                    SerializationFields.AllowedCreatorsRole,
-                    new JValue(guild.AllowedCreatorsRole.GetValueOrDefault().Value));
+                    SerializationFields.OptinParentCatgory,
+                    new JValue(guild.OptinParentCategory.GetValueOrDefault().Value));
             }
 
             return retVal;
@@ -172,7 +212,8 @@ namespace Reiati.ChillBot.Data
         {
             // Implementer's note: no need to document fields.
 
-            public const string AllowedCreatorsRole = "AllowedCreatorsRole";
+            public const string OptinCreatorsRoles = "OptinCreatorsRoles";
+            public const string OptinParentCatgory = "OptinParentCatgory";
         }
     }
 }
