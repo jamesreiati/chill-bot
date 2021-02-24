@@ -133,6 +133,18 @@ namespace Reiati.ChillBot.Data
                 retVal.OptinParentCategory = categoryId;
             }
 
+            if (dataObj.TryGetValue(SerializationFields.WelcomeChannel, out JToken welcomeChannel))
+            {
+                if (welcomeChannel.Type != JTokenType.Integer)
+                {
+                    throw new InvalidDataException(
+                        $"{SerializationFields.WelcomeChannel} is expected to be an integer type.");
+                }
+
+                var welcomeChannelId = new Snowflake(welcomeChannel.ToObject<UInt64>());
+                retVal.WelcomeChannel = welcomeChannelId;
+            }
+
             return retVal;
         }
 
@@ -161,6 +173,13 @@ namespace Reiati.ChillBot.Data
                 retVal.Add(
                     SerializationFields.OptinParentCatgory,
                     new JValue(guild.OptinParentCategory.GetValueOrDefault().Value));
+            }
+
+            if (guild.WelcomeChannel.HasValue)
+            {
+                retVal.Add(
+                    SerializationFields.WelcomeChannel,
+                    new JValue(guild.WelcomeChannel.GetValueOrDefault().Value));
             }
 
             return retVal;
@@ -224,6 +243,7 @@ namespace Reiati.ChillBot.Data
 
             public const string OptinCreatorsRoles = "OptinCreatorsRoles";
             public const string OptinParentCatgory = "OptinParentCatgory";
+            public const string WelcomeChannel = "WelcomeChannel";
         }
 
         /// <summary>

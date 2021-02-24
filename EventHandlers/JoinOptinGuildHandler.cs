@@ -127,7 +127,7 @@ namespace Reiati.ChillBot.EventHandlers
                         throw new NotImplementedException(checkoutResult.Result.ToString());
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.ErrorFormat(
                     "Request dropped - exception thrown;{{message:{0},stack:\n{1}\n}}",

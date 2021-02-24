@@ -34,5 +34,11 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <value>Null if opt-ins are disabled on this server.</value>
         public Snowflake? OptinParentCategory { get; set; }
+
+        /// <summary>
+        /// The id representing the channel under which welcome messages are to be sent.
+        /// </summary>
+        /// <value>Null if welcome messages are not to be sent.</value>
+        public Snowflake? WelcomeChannel { get; set; }
     }
 }

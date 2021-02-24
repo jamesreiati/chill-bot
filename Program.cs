@@ -25,11 +25,6 @@ namespace Reiati.ChillBot
         private static DiscordShardedClient client;
 
         /// <summary>
-        /// The event handler used to handle messages.
-        /// </summary>
-        private static GeneralMessageHandler eventHandler;
-
-        /// <summary>
         /// Main entry point for the application.
         /// </summary>
         public static void Main(string[] args)
@@ -114,13 +109,16 @@ namespace Reiati.ChillBot
         private static Task ReadyHandler(DiscordSocketClient shard)
         {
             Program.logger.InfoFormat("Shard ready;{{shardId:{0}}}", shard.ShardId);
-            var eventHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
-            Program.eventHandler = eventHandler;
-            
+
             shard.Log += LogAsyncFromShard;
-            shard.MessageReceived += eventHandler.HandleMessageReceived;
+
+            var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
+            shard.MessageReceived += messageHandler.HandleMessageReceived;
+            
+            var userJoinedHandler = new UserJoinedHandler();
+            shard.UserJoined += userJoinedHandler.HandleUserJoin;
+
             // TODO: shard.ReactionAdded
-            // TODO: shard.UserJoined
 
             return Task.CompletedTask;
         }
@@ -132,7 +130,7 @@ namespace Reiati.ChillBot
         /// <returns>When the task has completed.</returns>
         private static Task LogAsyncFromClient(Discord.LogMessage log)
         {
-            Program.logger.DebugFormat("Client log - {0}", log.ToString());
+            Program.logger.InfoFormat("Client log - {0}", log.ToString());
             return Task.CompletedTask;
         }
 
@@ -143,7 +141,7 @@ namespace Reiati.ChillBot
         /// <returns>When the task has completed.</returns>
         private static Task LogAsyncFromShard(Discord.LogMessage log)
         {
-            Program.logger.DebugFormat("Shard log - {0}", log.ToString());
+            Program.logger.InfoFormat("Shard log - {0}", log.ToString());
             return Task.CompletedTask;
         }
     }
