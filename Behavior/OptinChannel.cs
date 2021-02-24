@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -133,6 +134,34 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
+        /// Lists all of the opt-in channels.
+        /// </summary>
+        /// <param name="guildConnection">A connection to the guild. May not be null.</param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
+        /// <returns>All of the names and descriptions opt-in channels.</returns>
+        public static ListResult List(
+            SocketGuild guildConnection,
+            Guild guildData,
+            ListResult recycleResult = null)
+        {
+            var retVal = recycleResult ?? new ListResult();
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                retVal.ToNoOptinCategory();
+                return retVal;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            retVal.ToSuccess(
+                optinsCategoryConnection.Channels
+                // TODO: Still need to find the channel descriptions
+                .Select(x => new Tuple<string, string>(x.Name, string.Empty)));
+            return retVal;
+        }
+
+        /// <summary>
         /// Returns the role name associated with a given opt-in channel.
         /// </summary>
         /// <param name="optinChannel">An id representing an opt-in channel. Not verified against real channels.</param>
@@ -177,6 +206,98 @@ namespace Reiati.ChillBot.Behavior
 
             /// <summary>The server has no role associated with the opt-in channel.</summary>
             RoleMissing,
+        }
+
+        /// <summary>
+        /// The result of a <see cref="OptinChannel.List(SocketGuild, Guild, ListResult)"/> call.
+        /// </summary>
+        public sealed class ListResult
+        {
+            /// <summary>
+            /// Underlying list.
+            /// </summary>
+            private readonly List<NameDescription> namesDescriptions = new List<NameDescription>(5);
+
+            /// <summary>
+            /// The type of this result.
+            /// </summary>
+            public ResultType Result { get; private set; }
+
+            /// <summary>
+            /// The names and descriptions of all the opt-in channels that can be joined.
+            /// </summary>
+            public IReadOnlyList<NameDescription> NamesDescriptions => this.namesDescriptions;
+
+            /// <summary>
+            /// Set this result to the <see cref="ResultType.Success"/> type.
+            /// </summary>
+            /// <param name="namesDescriptions">Some names and descriptions of channels.</param>
+            public void ToSuccess(IEnumerable<Tuple<string, string>> namesDescriptions)
+            {
+                this.Result = ResultType.Success;
+                this.namesDescriptions.Clear();
+                this.namesDescriptions.AddRange(
+                    namesDescriptions
+                    .Select(x => new NameDescription(
+                        name: x.Item1 ?? string.Empty,
+                        description: x.Item2 ?? string.Empty)));
+            }
+
+            /// <summary>
+            /// Set this result to the <see cref="ResultType.NoOptinCategory"/> type.
+            /// </summary>
+            public void ToNoOptinCategory()
+            {
+                this.Result = ResultType.NoOptinCategory;
+            }
+
+            /// <summary>
+            /// Drops all references to objects.
+            /// </summary>
+            /// <remarks>Useful call before returning to a pool.</remarks>
+            public void ClearReferences()
+            {
+                this.namesDescriptions.Clear();
+            }
+
+            /// <summary>
+            /// The result of a <see cref="OptinChannel.List(SocketGuild, Guild, ListResult)"/> call.
+            /// </summary>
+            public enum ResultType
+            {
+                /// <summary>The channels are able to be listed.</summary>
+                Success,
+
+                /// <summary>The server has no Opt-in channel category.</summary>
+                NoOptinCategory,
+            }
+
+            /// <summary>
+            /// A name and description of a channel.
+            /// </summary>
+            public readonly struct NameDescription
+            {
+                /// <summary>
+                /// Name of the channel.
+                /// </summary>
+                public readonly string name;
+
+                /// <summary>
+                /// Description for the channel.
+                /// </summary>
+                public readonly string description;
+
+                /// <summary>
+                /// Constructs a <see cref="NameDescription"/>.
+                /// </summary>
+                /// <param name="name">The name of the channel.</param>
+                /// <param name="description">The description for the channel.</param>
+                public NameDescription(string name, string description)
+                {
+                    this.name = name;
+                    this.description = description;
+                }
+            }
         }
     }
 }
