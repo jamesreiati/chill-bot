@@ -27,11 +27,11 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="guildConnection">
         /// The connection to the guild this channel is being created in. May not be null.
         /// </param>
-        /// <param name="guildData">Information about this guild.</param>
-        /// <param name="requestAuthor">The author of the channel create request.</param>
-        /// <param name="channelName">The requested name of the new channel.</param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
+        /// <param name="channelName">The requested name of the new channel. May not be null.</param>
         /// <param name="description">The requested description of the new channel.</param>
-        /// <returns>Whether or not the creation of the opt-in channel was successful.</returns>
+        /// <returns>The result of the request.</returns>
         public static async Task<CreateResult> Create(
             SocketGuild guildConnection,
             Guild guildData,
@@ -69,7 +69,7 @@ namespace Reiati.ChillBot.Behavior
             var createdTextChannel = await guildConnection.CreateTextChannelAsync(channelName, settings =>
             {
                 settings.CategoryId = optinsCategory.Value;
-                settings.Topic = description;
+                settings.Topic = description ?? string.Empty;
             });
 
             var createdRole = await guildConnection.CreateRoleAsync(
@@ -86,6 +86,50 @@ namespace Reiati.ChillBot.Behavior
             await requestAuthor.AddRoleAsync(createdRole);
 
             return CreateResult.Success;
+        }
+
+        /// <summary>
+        /// Joins an optin channel.
+        /// </summary>
+        /// <param name="guildConnection">
+        /// The connection to the guild the user is trying to join a channel in. May not be null.
+        /// </param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="requestAuthor">The author of the join channel request. May not be null.</param>
+        /// <param name="channelName">The name of the channel to join.</param>
+        /// <returns>The result of the request.</returns>
+        public static async Task<JoinResult> Join(
+            SocketGuild guildConnection,
+            Guild guildData,
+            SocketGuildUser requestAuthor,
+            string channelName)
+        {
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                return JoinResult.NoOptinCategory;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var requestedChannel = optinsCategoryConnection.Channels
+                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0);
+
+            if (requestedChannel == null)
+            {
+                return JoinResult.NoSuchChannel;
+            }
+            
+            var associatedRoleName = OptinChannel.GetRoleName(requestedChannel.Id);
+            var role = guildConnection.Roles
+                .FirstOrDefault(x => string.Compare(x.Name, associatedRoleName, ignoreCase: false) == 0);
+
+            if (role == null)
+            {
+                return JoinResult.RoleMissing;
+            }
+
+            await requestAuthor.AddRoleAsync(role);
+            return JoinResult.Success;
         }
 
         /// <summary>
@@ -115,6 +159,24 @@ namespace Reiati.ChillBot.Behavior
 
             /// <summary></summary>,
             ChannelNameUsed
+        }
+
+        /// <summary>
+        /// Result type of a <see cref="OptinChannel.Join(SocketGuild, Guild, SocketGuildUser, string)"/> call.
+        /// </summary>
+        public enum JoinResult
+        {
+            /// <summary>The user was given added to the opt-in channel.</summary>
+            Success,
+
+            /// <summary>The channel name given does not exist as an opt-in channel (or at all.)</summary>
+            NoSuchChannel,
+
+            /// <summary>The server has no Opt-in channel category.</summary>
+            NoOptinCategory,
+
+            /// <summary>The server has no role associated with the opt-in channel.</summary>
+            RoleMissing,
         }
     }
 }

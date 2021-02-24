@@ -60,6 +60,7 @@ namespace Reiati.ChillBot.EventHandlers
             this.guildHandlers = new List<IMessageHandler>()
             {
                 new NewOptinGuildHandler(),
+                new JoinOptinGuildHandler(),
             };
         }
 

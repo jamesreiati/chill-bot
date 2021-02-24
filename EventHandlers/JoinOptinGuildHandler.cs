@@ -11,14 +11,14 @@ using Reiati.ChillBot.Tools;
 namespace Reiati.ChillBot.EventHandlers
 {
     /// <summary>
-    /// Responsible for handling messages in a guild, attempting to create opt-in channels.
+    /// Responsible for handling messages in a guild, attempting to join opt-in channels.
     /// </summary>
-    public class NewOptinGuildHandler : AbstractRegexHandler
+    public class JoinOptinGuildHandler : AbstractRegexHandler
     {
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(NewOptinGuildHandler));
+        private static ILog Logger = LogManager.GetLogger(typeof(JoinOptinGuildHandler));
 
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
@@ -30,14 +30,12 @@ namespace Reiati.ChillBot.EventHandlers
 
         /// <summary>
         /// The matcher for detecting the phrases:
-        /// - <@123> new opt-in {1} {2}
-        /// - <@123> new opt-in {1}
-        /// - <@123> new opt in {1} {2}
-        /// - <@123> new optin {1} {2}
-        /// And captures the channel name into group 1, and the description {} into group 2.
+        /// - <@123> join {1}
+        /// - <@123> join #{1}
+        /// And captures the proposed channel name into group 1
         /// </summary>
         private static Regex matcher = new Regex(
-            @"^\s*\<\@\!?\d+\>\s*new\s+opt(?:-|\s)?in\s+(\S+)\s*(.*)$",
+            @"^\s*\<\@\!?\d+\>\s*join\s+#?(\S+)$",
             RegexOptions.IgnoreCase,
             HardCoded.Handlers.DefaultRegexTimeout);
 
@@ -47,10 +45,10 @@ namespace Reiati.ChillBot.EventHandlers
         private static readonly Emoji SuccessEmoji = new Emoji("✅");
 
         /// <summary>
-        /// Constructs a <see cref="NewOptinGuildHandler"/>.
+        /// Constructs a <see cref="JoinOptinGuildHandler"/>.
         /// </summary>
-        public NewOptinGuildHandler()
-            : base(NewOptinGuildHandler.matcher)
+        public JoinOptinGuildHandler()
+            : base(JoinOptinGuildHandler.matcher)
         { }
 
         /// <summary>
@@ -66,14 +64,6 @@ namespace Reiati.ChillBot.EventHandlers
             var guildConnection = messageChannel.Guild;
             var channelName = handleCache.Groups[1].Captures[0].Value;
 
-            if (!NewOptinGuildHandler.TryGetSecondMatch(handleCache, out string description))
-            {
-                await message.Channel.SendMessageAsync(
-                    text: "The new channel's description must be something meaningful. Ideally something that explains what it is.",
-                    messageReference: message.Reference);
-                return;
-            }
-
             var checkoutResult = checkoutResultPool.Get();
             try
             {
@@ -84,40 +74,39 @@ namespace Reiati.ChillBot.EventHandlers
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
                             var guildData = borrowedGuild.Instance;
-                            var createResult = await OptinChannel.Create(
+                            var joinResult = await OptinChannel.Join(
                                 guildConnection: guildConnection,
                                 guildData: guildData,
                                 requestAuthor: author,
-                                channelName: channelName,
-                                description: description);
-                            borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
+                                channelName: channelName);
+                            borrowedGuild.Commit = joinResult == OptinChannel.JoinResult.Success;
 
-                            switch (createResult)
+                            switch (joinResult)
                             {
-                                case OptinChannel.CreateResult.Success:
-                                    await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
+                                case OptinChannel.JoinResult.Success:
+                                    await message.AddReactionAsync(JoinOptinGuildHandler.SuccessEmoji);
                                 break;
 
-                                case OptinChannel.CreateResult.NoPermissions:
+                                case OptinChannel.JoinResult.NoSuchChannel:
                                     await message.Channel.SendMessageAsync(
-                                        text: "You do not have permission to create opt-in channels.",
+                                        text: "An opt-in channel with this name does not exist.",
                                         messageReference: message.Reference);
                                 break;
 
-                                case OptinChannel.CreateResult.NoOptinCategory:
+                                case OptinChannel.JoinResult.NoOptinCategory:
                                     await message.Channel.SendMessageAsync(
                                         text: "This server is not set up for opt-in channels.",
                                         messageReference: message.Reference);
                                 break;
 
-                                case OptinChannel.CreateResult.ChannelNameUsed:
+                                case OptinChannel.JoinResult.RoleMissing:
                                     await message.Channel.SendMessageAsync(
-                                        text: "An opt-in channel with this name already exists.",
+                                        text: "The role for this channel went missing. Talk to your server admin.",
                                         messageReference: message.Reference);
                                 break;
 
                                 default:
-                                    throw new NotImplementedException(createResult.ToString());
+                                    throw new NotImplementedException(joinResult.ToString());
                             }
                         }
                     break;
@@ -153,24 +142,6 @@ namespace Reiati.ChillBot.EventHandlers
                 checkoutResult.ClearReferences();
                 checkoutResultPool.Return(checkoutResult);
             }
-        }
-
-        /// <summary>
-        /// Tries to get the second match, returns false if that match does not exist, or it is white space.
-        /// </summary>
-        /// <param name="match">Any regex match. May not be null.</param>
-        /// <param name="contents">The contents of the match.</param>
-        /// <returns>True if there was a second match, and its contents were not white space.</returns>
-        private static bool TryGetSecondMatch(Match match, out string contents)
-        {
-            contents = null;
-            if (match.Groups.Count < 3)
-            {
-                return false;
-            }
-
-            contents = match.Groups[2].Captures[0].Value;
-            return !string.IsNullOrWhiteSpace(contents);
         }
     }
 }
