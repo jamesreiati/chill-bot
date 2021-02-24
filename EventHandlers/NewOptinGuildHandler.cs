@@ -140,10 +140,7 @@ namespace Reiati.ChillBot.EventHandlers
             }
             catch(Exception e)
             {
-                Logger.ErrorFormat(
-                    "Request dropped - exception thrown;{{message:{0},stack:\n{1}\n}}",
-                    e.Message,
-                    e.StackTrace);
+                Logger.ErrorFormat("Request dropped - exception thrown;{{exception:{0}}}", e.ToString());
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
                     messageReference: message.Reference);

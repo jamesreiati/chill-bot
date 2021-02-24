@@ -78,10 +78,7 @@ namespace Reiati.ChillBot.EventHandlers
             }
             catch (Exception e)
             {
-                Logger.ErrorFormat(
-                    "Welcome dropped - exception thrown;{{message:{0},stack:\n{1}\n}}",
-                    e.Message,
-                    e.StackTrace);
+                Logger.ErrorFormat("Welcome dropped - exception thrown;{{exception:{0}}}", e.ToString());
             }
             finally
             {
