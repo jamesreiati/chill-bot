@@ -17,12 +17,22 @@ namespace Reiati.ChillBot
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog logger;
+        private static ILog Logger;
 
         /// <summary>
         /// The client(s) used to connect to discord.
         /// </summary>
-        private static DiscordShardedClient client;
+        private static DiscordShardedClient Client;
+
+        /// <summary>
+        /// Whether or not the listeners have already been attached to the client.
+        /// </summary>
+        private static bool ListenersAttached = false;
+
+        /// <summary>
+        /// A lock to prevent listener duplicate hooking.
+        /// </summary>
+        private static object ListenersLock = new object();
 
         /// <summary>
         /// Main entry point for the application.
@@ -40,9 +50,9 @@ namespace Reiati.ChillBot
             Console.CancelKeyPress += 
                 delegate(object sender, ConsoleCancelEventArgs args)
                 {
-                    Program.logger.Info("Shutdown initiated - console");
-                    Program.client?.StopAsync().GetAwaiter().GetResult();
-                    Program.client.Dispose();
+                    Program.Logger.Info("Shutdown initiated - console");
+                    Program.Client?.StopAsync().GetAwaiter().GetResult();
+                    Program.Client.Dispose();
                 };
 
             try
@@ -52,10 +62,7 @@ namespace Reiati.ChillBot
             }
             catch (Exception e)
             {
-                Program.logger.ErrorFormat(
-                    "Shutdown initiated - exception thrown;{{message:{0},stack:\n{1}\n}}",
-                    e.Message,
-                    e.StackTrace);
+                Program.Logger.ErrorFormat("Shutdown initiated - exception thrown;{{exception:{0}}}", e.ToString());
             }
         }
 
@@ -74,8 +81,8 @@ namespace Reiati.ChillBot
             }
 
             XmlConfigurator.Configure(configFile);
-            Program.logger = LogManager.GetLogger("Bootstrap");
-            Program.logger.InfoFormat("Logger initialized;{{loggingConfig:{0}}}", configFile.FullName);
+            Program.Logger = LogManager.GetLogger("Bootstrap");
+            Program.Logger.InfoFormat("Logger initialized;{{loggingConfig:{0}}}", configFile.FullName);
             return true;
         }
 
@@ -92,34 +99,24 @@ namespace Reiati.ChillBot
 
             var client = new DiscordShardedClient(config);
             client.Log += LogAsyncFromClient;
-            client.ShardConnected += ReadyHandler;
+            client.ShardConnected += ConnectedHandler;
 
             string token = await File.ReadAllTextAsync(HardCoded.Discord.TokenFilePath);
 
             await client.LoginAsync(Discord.TokenType.Bot, token.Trim());
             await client.StartAsync();
-            Program.client = client;
+            Program.Client = client;
         }
 
         /// <summary>
-        /// Logs to the console when a shard is ready.
+        /// Handler for when a shard has connected.
         /// </summary>
         /// <param name="shard">The shard which is ready.</param>
         /// <returns>When the task has completed.</returns>
-        private static Task ReadyHandler(DiscordSocketClient shard)
+        private static Task ConnectedHandler(DiscordSocketClient shard)
         {
-            Program.logger.InfoFormat("Shard ready;{{shardId:{0}}}", shard.ShardId);
-
-            shard.Log += LogAsyncFromShard;
-
-            var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
-            shard.MessageReceived += messageHandler.HandleMessageReceived;
-            
-            var userJoinedHandler = new UserJoinedHandler();
-            shard.UserJoined += userJoinedHandler.HandleUserJoin;
-
-            // TODO: shard.ReactionAdded
-
+            Program.Logger.InfoFormat("Shard connected;{{shardId:{0}}}", shard.ShardId);
+            Program.AttachListenersIfNeeded(shard);
             return Task.CompletedTask;
         }
 
@@ -130,7 +127,7 @@ namespace Reiati.ChillBot
         /// <returns>When the task has completed.</returns>
         private static Task LogAsyncFromClient(Discord.LogMessage log)
         {
-            Program.logger.InfoFormat("Client log - {0}", log.ToString());
+            Program.Logger.InfoFormat("Client log - {0}", log.ToString());
             return Task.CompletedTask;
         }
 
@@ -141,8 +138,39 @@ namespace Reiati.ChillBot
         /// <returns>When the task has completed.</returns>
         private static Task LogAsyncFromShard(Discord.LogMessage log)
         {
-            Program.logger.InfoFormat("Shard log - {0}", log.ToString());
+            Program.Logger.InfoFormat("Shard log - {0}", log.ToString());
             return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Creates and hooks the listeners to their respective events on all shards.
+        /// </summary>
+        /// <param name="shard">Any single shard.</param>
+        /// <remarks>
+        /// Events connected to 1 shard will be connected to all shards. If the listeners are attached once, they never
+        /// have to be attached again.
+        /// Source: https://github.com/discord-net/Discord.Net/blob/2.3.0/docs/faq/basics/client-basics.md#what-is-a-shardsharded-client-and-how-is-it-different-from-the-discordsocketclient
+        /// </remarks>
+        private static void AttachListenersIfNeeded(DiscordSocketClient shard)
+        {
+            if (!Program.ListenersAttached)
+            {
+                lock (Program.ListenersLock)
+                {
+                    if (!Program.ListenersAttached)
+                    {
+                        var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
+                        var userJoinedHandler = new UserJoinedHandler();
+
+                        shard.Log += LogAsyncFromShard;
+                        shard.MessageReceived += messageHandler.HandleMessageReceived;
+                        shard.UserJoined += userJoinedHandler.HandleUserJoin;
+                        // TODO: shard.ReactionAdded
+                        Program.ListenersAttached = true;
+                    }
+                }
+            }
         }
     }
 }
