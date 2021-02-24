@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using log4net;
-using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Tools;
 
 namespace Reiati.ChillBot.EventHandlers
@@ -21,11 +20,6 @@ namespace Reiati.ChillBot.EventHandlers
         private static ObjectPool<CanHandleResult> handleResultPool = new ObjectPool<CanHandleResult>(
             tFactory: () => new CanHandleResult(),
             preallocate: 3);
-
-        /// <summary>
-        /// Emoji sent upon an attempt to perform an action by a user with no permission to do so.
-        /// </summary>
-        private static readonly Emoji NoPermissionEmoji = new Emoji("⛔");
 
         /// <summary>
         /// Emoji sent upon a message intended for the bot, which the bot could not handle.
@@ -91,7 +85,7 @@ namespace Reiati.ChillBot.EventHandlers
             var guildChannel = message.Channel as SocketGuildChannel;
             if (guildChannel != null)
             {
-                await this.HandleGuildMessage(message, guildChannel);
+                await this.HandleGuildMessage(message);
                 return;
             }
 
@@ -109,25 +103,11 @@ namespace Reiati.ChillBot.EventHandlers
         /// Handles a message sent in a guild.
         /// </summary>
         /// <param name="message">The message sent. May not be null.</param>
-        /// <param name="preCastedChannel">
-        /// The channel the message was sent from, as a <see cref="SocketGuildChannel"/>. Will recast if left null.
-        /// </param>
         /// <returns>When the message has been handled.</returns>
-        private async Task HandleGuildMessage(SocketMessage message, SocketGuildChannel preCastedChannel = null)
+        private async Task HandleGuildMessage(SocketMessage message)
         {
             if (!message.MentionedUsers.Any(x => x.Id == this.botId))
             {
-                return;
-            }
-
-            var channel = preCastedChannel ?? (message.Channel as SocketGuildChannel);
-            var author = message.Author as SocketGuildUser;
-
-            // As long as "HasAnyPermissions" is cheap, this is a helpful optimization to block
-            // out users without permissions before even parsing the message.
-            if (!Permissions.HasAnyPermissions(channel.Id, author.Id))
-            {
-                await message.AddReactionAsync(NoPermissionEmoji);
                 return;
             }
 

@@ -1,9 +1,10 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
-using Reiati.ChillBot.Tools;
-using Reiati.ChillBot.Data;
 using Discord;
 using Discord.WebSocket;
+using Reiati.ChillBot.Data;
+using Reiati.ChillBot.Tools;
 
 namespace Reiati.ChillBot.Behavior
 {
@@ -27,37 +28,64 @@ namespace Reiati.ChillBot.Behavior
         /// The connection to the guild this channel is being created in. May not be null.
         /// </param>
         /// <param name="guildData">Information about this guild.</param>
+        /// <param name="requestAuthor">The author of the channel create request.</param>
         /// <param name="channelName">The requested name of the new channel.</param>
         /// <param name="description">The requested description of the new channel.</param>
         /// <returns>Whether or not the creation of the opt-in channel was successful.</returns>
-        public static async Task<bool> TryCreate(
+        public static async Task<CreateResult> Create(
             SocketGuild guildConnection,
             Guild guildData,
+            SocketGuildUser requestAuthor,
             string channelName,
             string description)
         {
+            ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
+
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return false;
+                return CreateResult.NoOptinCategory;
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            // TODO: requestAuthor.Roles gets cached. How do I refresh this value so that it's accurate?
+
+            var hasPermission = PermissionsUtilities.HasPermission(
+                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                allowedRoles: guildData.OptinCreatorsRoles);
+            if (!hasPermission)
+            {
+                return CreateResult.NoPermissions;
+            }
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var alreadyExists = optinsCategoryConnection.Channels
+                .Select(x => x.Name)
+                .Any(x => string.Compare(x, channelName, ignoreCase: false) == 0);
+            if (alreadyExists)
+            {
+                return CreateResult.ChannelNameUsed;
+            }
 
             var createdTextChannel = await guildConnection.CreateTextChannelAsync(channelName, settings =>
             {
                 settings.CategoryId = optinsCategory.Value;
                 settings.Topic = description;
             });
+
             var createdRole = await guildConnection.CreateRoleAsync(
                 name: OptinChannel.GetRoleName(createdTextChannel.Id),
                 permissions: null,
                 color: null,
                 isHoisted: false,
                 isMentionable: false);
+
             var newPermissions = createdTextChannel.AddPermissionOverwriteAsync(
                 role: createdRole,
                 permissions: new OverwritePermissions(viewChannel: PermValue.Allow));
 
-            return true;
+            await requestAuthor.AddRoleAsync(createdRole);
+
+            return CreateResult.Success;
         }
 
         /// <summary>
@@ -68,6 +96,25 @@ namespace Reiati.ChillBot.Behavior
         public static string GetRoleName(Snowflake optinChannel)
         {
             return "chill-" + optinChannel.Value;
+        }
+        
+        /// <summary>
+        /// Result type of a <see cref="OptinChannel.Create(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// call.
+        /// </summary>
+        public enum CreateResult
+        {
+            /// <summary>An optin channel was successfully created.</summary>
+            Success,
+
+            /// <summary></summary>
+            NoOptinCategory,
+
+            /// <summary></summary>
+            NoPermissions,
+
+            /// <summary></summary>,
+            ChannelNameUsed
         }
     }
 }

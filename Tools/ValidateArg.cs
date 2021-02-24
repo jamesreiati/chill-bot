@@ -21,5 +21,19 @@ namespace Reiati.ChillBot.Tools
                 throw new ArgumentNullException(paramName);
             }
         }
+
+        /// <summary>
+        /// Throws if some string is null or whitespace.
+        /// </summary>
+        /// <param name="value">Any value.</param>
+        /// <param name="paramName">The name of the parameter to put in the exception.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void IsNotNullOrWhiteSpace(string value, string paramName)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentNullException(paramName);
+            }
+        }
     }
 }

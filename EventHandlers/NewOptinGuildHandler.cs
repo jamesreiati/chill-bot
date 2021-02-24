@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
+using log4net;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
@@ -14,6 +15,11 @@ namespace Reiati.ChillBot.EventHandlers
     /// </summary>
     public class NewOptinGuildHandler : AbstractRegexHandler
     {
+        /// <summary>
+        /// A logger.
+        /// </summary>
+        private static ILog Logger = LogManager.GetLogger(typeof(NewOptinGuildHandler));
+
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
         /// </summary>
@@ -56,6 +62,8 @@ namespace Reiati.ChillBot.EventHandlers
         protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
         {
             var messageChannel = message.Channel as SocketGuildChannel;
+            var author = message.Author as SocketGuildUser;
+            var guildConnection = messageChannel.Guild;
             var channelName = handleCache.Groups[1].Captures[0].Value;
 
             if (!NewOptinGuildHandler.TryGetSecondMatch(handleCache, out string description))
@@ -66,35 +74,50 @@ namespace Reiati.ChillBot.EventHandlers
                 return;
             }
 
-            var guild = messageChannel.Guild;
-
-            bool success;
             var checkoutResult = checkoutResultPool.Get();
             try
             {
-                checkoutResult = await FileBasedGuildRepository.Instance.Checkout(guild.Id, checkoutResult);
+                checkoutResult = await FileBasedGuildRepository.Instance.Checkout(guildConnection.Id, checkoutResult);
                 switch (checkoutResult.Result)
                 {
                     case FileBasedGuildRepository.CheckoutResult.ResultType.Success:
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
                             var guildData = borrowedGuild.Instance;
-                            success = await OptinChannel.TryCreate(
-                                guildConnection: guild,
+                            var createResult = await OptinChannel.Create(
+                                guildConnection: guildConnection,
                                 guildData: guildData,
+                                requestAuthor: author,
                                 channelName: channelName,
                                 description: description);
-                            borrowedGuild.Commit = success;
+                            borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
 
-                            if (success)
+                            switch (createResult)
                             {
-                                await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
-                            }
-                            else
-                            {
-                                await message.Channel.SendMessageAsync(
-                                    text: "Something went wrong trying to do this for you. Contact your server admin for more help.",
-                                    messageReference: message.Reference);
+                                case OptinChannel.CreateResult.Success:
+                                    await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
+                                break;
+
+                                case OptinChannel.CreateResult.NoPermissions:
+                                    await message.Channel.SendMessageAsync(
+                                        text: "You do not have permission to create opt-in channels.",
+                                        messageReference: message.Reference);
+                                break;
+
+                                case OptinChannel.CreateResult.NoOptinCategory:
+                                    await message.Channel.SendMessageAsync(
+                                        text: "The server is not set up for opt-in channels.",
+                                        messageReference: message.Reference);
+                                break;
+
+                                case OptinChannel.CreateResult.ChannelNameUsed:
+                                    await message.Channel.SendMessageAsync(
+                                        text: "An opt-in channel with this name already exists.",
+                                        messageReference: message.Reference);
+                                break;
+
+                                default:
+                                    throw new NotImplementedException(createResult.ToString());
                             }
                         }
                     break;
@@ -114,6 +137,16 @@ namespace Reiati.ChillBot.EventHandlers
                     default:
                         throw new NotImplementedException(checkoutResult.Result.ToString());
                 }
+            }
+            catch(Exception e)
+            {
+                Logger.ErrorFormat(
+                    "Request dropped - exception thrown;{{message:{0},stack:\n{1}\n}}",
+                    e.Message,
+                    e.StackTrace);
+                await message.Channel.SendMessageAsync(
+                    text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
+                    messageReference: message.Reference);
             }
             finally
             {

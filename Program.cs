@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,7 +58,7 @@ namespace Reiati.ChillBot
             catch (Exception e)
             {
                 Program.logger.ErrorFormat(
-                    "Shutdown initiated - exception thrown;{{message:{0},\nstack:{1}}}",
+                    "Shutdown initiated - exception thrown;{{message:{0},stack:\n{1}\n}}",
                     e.Message,
                     e.StackTrace);
             }
