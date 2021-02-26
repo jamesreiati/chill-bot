@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.WebSocket;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 
@@ -12,13 +12,8 @@ namespace Reiati.ChillBot.EventHandlers
     /// <summary>
     /// Responsible for handling user joined events.
     /// </summary>
-    public class UserJoinedHandler
+    public class UserJoinedHandler : IUserJoinedHandler
     {
-        /// <summary>
-        /// A logger.
-        /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(JoinOptinGuildHandler));
-
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
         /// </summary>
@@ -33,6 +28,20 @@ namespace Reiati.ChillBot.EventHandlers
         private static ObjectPool<StringBuilder> welcomeMessageBuilderPool = new ObjectPool<StringBuilder>(
             tFactory: () => new StringBuilder(1024),
             preallocate: 3);
+
+        /// <summary>
+        /// A logger.
+        /// </summary>
+        private ILogger logger;
+
+        /// <summary>
+        /// Constructs a <see cref="UserJoinedHandler"/>.
+        /// </summary>
+        /// <param name="logger">A logger.</param>
+        public UserJoinedHandler(ILogger<UserJoinedHandler> logger)
+        {
+            this.logger = logger;
+        }
 
         /// <summary>
         /// Handle a user joined event.
@@ -78,7 +87,7 @@ namespace Reiati.ChillBot.EventHandlers
             }
             catch (Exception e)
             {
-                Logger.ErrorFormat("Welcome dropped - exception thrown;{{exception:{0}}}", e.ToString());
+                this.logger.LogError(e, "Welcome dropped - exception thrown");
             }
             finally
             {

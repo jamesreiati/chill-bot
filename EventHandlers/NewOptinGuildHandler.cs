@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
-using log4net;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
+using Microsoft.Extensions.Logging;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -15,11 +15,6 @@ namespace Reiati.ChillBot.EventHandlers
     /// </summary>
     public class NewOptinGuildHandler : AbstractRegexHandler
     {
-        /// <summary>
-        /// A logger.
-        /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(NewOptinGuildHandler));
-
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
         /// </summary>
@@ -47,11 +42,19 @@ namespace Reiati.ChillBot.EventHandlers
         private static readonly Emoji SuccessEmoji = new Emoji("✅");
 
         /// <summary>
+        /// A logger.
+        /// </summary>
+        private ILogger logger;
+
+        /// <summary>
         /// Constructs a <see cref="NewOptinGuildHandler"/>.
         /// </summary>
-        public NewOptinGuildHandler()
+        /// <param name="logger">A logger.</param>
+        public NewOptinGuildHandler(ILogger<NewOptinGuildHandler> logger)
             : base(NewOptinGuildHandler.matcher)
-        { }
+        {
+            this.logger = logger;
+        }
 
         /// <summary>
         /// Implementers should derive from this to handle a matched message.
@@ -140,7 +143,7 @@ namespace Reiati.ChillBot.EventHandlers
             }
             catch(Exception e)
             {
-                Logger.ErrorFormat("Request dropped - exception thrown;{{exception:{0}}}", e.ToString());
+                this.logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
                     messageReference: message.Reference);

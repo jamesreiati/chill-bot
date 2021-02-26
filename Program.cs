@@ -1,12 +1,10 @@
-using log4net;
-using log4net.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.EventHandlers;
 using Reiati.ChillBot.Services;
 using System;
-using System.IO;
 
 namespace Reiati.ChillBot
 {
@@ -18,55 +16,38 @@ namespace Reiati.ChillBot
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog Logger;
+        private static ILogger Logger;
 
         /// <summary>
         /// Main entry point for the application.
         /// </summary>
         public static void Main(string[] args)
         {
-            if (!Program.TryStartLogger())
-            {
-                Console.WriteLine(string.Format(
-                    "Application Exit - No logging config found;{{filePath:{0}}}",
-                    HardCoded.Logging.ConfigFilePath));
-                return;
-            }
+            // Construct a logger separate from the host that can be used when we can't use host's logger 
+            // due to the host being disposed or not yet created.
+            using var bootstrapLoggerFactory = LoggerFactory.Create(builder => builder.AddConsole().AddDebug().AddEventSourceLogger());
+            Program.Logger = bootstrapLoggerFactory.CreateLogger("Bootstrap");
+            Program.Logger.LogInformation("Bootstrap logger initialized");
 
-            Console.CancelKeyPress += 
-                delegate(object sender, ConsoleCancelEventArgs args)
+            Console.CancelKeyPress +=
+                delegate (object sender, ConsoleCancelEventArgs args)
                 {
-                    Program.Logger.Info("Shutdown initiated - console");
+                    Program.Logger.LogInformation("Shutdown initiated - console");
                 };
 
             try
             {
-                CreateHostBuilder(args).Build().Run();
+                using IHost host = CreateHostBuilder(args).Build();
+
+                var logger = host.Services.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("Host logger initialized");
+
+                host.Run();
             }
             catch (Exception e)
             {
-                Program.Logger.ErrorFormat("Shutdown initiated - exception thrown;{{exception:{0}}}", e.ToString());
+                Program.Logger.LogError(e, "Shutdown initiated - exception thrown");
             }
-        }
-
-        /// <summary>
-        /// Tries to start the logger.
-        /// </summary>
-        private static bool TryStartLogger()
-        {
-            // Required for colored console output: https://issues.apache.org/jira/browse/LOG4NET-658
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            var configFile = new FileInfo(HardCoded.Logging.ConfigFilePath);
-
-            if (!configFile.Exists)
-            {
-                return false;
-            }
-
-            XmlConfigurator.Configure(configFile);
-            Program.Logger = LogManager.GetLogger("Bootstrap");
-            Program.Logger.InfoFormat("Logger initialized;{{loggingConfig:{0}}}", configFile.FullName);
-            return true;
         }
 
         /// <summary>
@@ -77,7 +58,6 @@ namespace Reiati.ChillBot
         private static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(logging => logging.ClearProviders())  // Logging is configured outside of the Host Builder
                 .ConfigureAppConfiguration(configBuilder =>
                 {
                     configBuilder.AddJsonFile(HardCoded.Config.DefaultConfigFilePath, optional: true);
@@ -87,6 +67,14 @@ namespace Reiati.ChillBot
                 })
                 .ConfigureServices(services =>
                 {
+                    services.AddSingleton<IMessageHandler, NewOptinGuildHandler>();
+                    services.AddSingleton<IMessageHandler, JoinOptinGuildHandler>();
+                    services.AddSingleton<IMessageHandler, ListOptinsGuildHandler>();
+                    services.AddSingleton<IMessageHandler, HelpGuildHandler>();
+
+                    services.AddSingleton<IMessageDispatcher, GeneralMessageHandler>();
+                    services.AddSingleton<IUserJoinedHandler, UserJoinedHandler>();
+
                     services.AddHostedService<ChillBotService>();
                 })
                 .UseConsoleLifetime();

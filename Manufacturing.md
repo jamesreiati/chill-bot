@@ -48,17 +48,12 @@
 
 1. Download and install the .NET Core 3.1 SDK and runtime from [Microsoft](https://dotnet.microsoft.com/download).
 
-2. Make a copy of `log4net.example.xml` and rename it to `log4net.config.xml`. Make any changes to the way logs are displayed here.
-```
-> cp .\log4net.example.xml .\log4net.config.xml
-```
-
-3. Make a copy of `config.json` and rename it to `config.Local.json`. Replace the value of the `DiscordToken` property in this file with your API token.
+2. Make a copy of `config.json` and rename it to `config.Local.json`. Replace the value of the `DiscordToken` property in this file with your API token.
 ```
 > cp .\config.json .\config.Local.json
 ```
 
-4. Run the project.
+3. Run the project.
 ```
 > dotnet run
 ```

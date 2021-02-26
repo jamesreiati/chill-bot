@@ -1,8 +1,9 @@
 ﻿using Discord.WebSocket;
-using log4net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.EventHandlers;
+using Reiati.ChillBot.Tools;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace Reiati.ChillBot.Services
         /// <summary>
         /// A logger.
         /// </summary>
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(ChillBotService));
+        private ILogger logger;
 
         /// <summary>
         /// Application configuration.
@@ -39,12 +40,28 @@ namespace Reiati.ChillBot.Services
         private object listenersLock = new object();
 
         /// <summary>
+        /// Dispatches messages to be handled.
+        /// </summary>
+        private IMessageDispatcher messageDispatcher;
+
+        /// <summary>
+        /// Handles user joined events.
+        /// </summary>
+        private IUserJoinedHandler userJoinedHandler;
+
+        /// <summary>
         /// Constructs a new <see cref="ChillBotService"/>.
         /// </summary>
         /// <param name="configuration">Application configuration.</param>
-        public ChillBotService(IConfiguration configuration)
+        /// <param name="logger">A logger.</param>
+        /// <param name="messageDispatcher">The dispatcher for handling messages.</param>
+        /// <param name="userJoinedHandler">The handler for user joined events.</param>
+        public ChillBotService(IConfiguration configuration, ILogger<ChillBotService> logger, IMessageDispatcher messageDispatcher, IUserJoinedHandler userJoinedHandler)
         {
             this.configuration = configuration;
+            this.logger = logger;
+            this.messageDispatcher = messageDispatcher;
+            this.userJoinedHandler = userJoinedHandler;
         }
 
         /// <inheritdoc/>
@@ -93,7 +110,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private Task ConnectedHandler(DiscordSocketClient shard)
         {
-            Logger.InfoFormat("Shard connected;{{shardId:{0}}}", shard.ShardId);
+            logger.LogInformation("Shard connected;{{shardId:{0}}}", shard.ShardId);
             AttachListenersIfNeeded(shard);
             return Task.CompletedTask;
         }
@@ -105,7 +122,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private Task LogAsyncFromClient(Discord.LogMessage log)
         {
-            Logger.InfoFormat("Client log - {0}", log.ToString());
+            logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {0}", log.Message ?? string.Empty);
             return Task.CompletedTask;
         }
 
@@ -116,7 +133,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private Task LogAsyncFromShard(Discord.LogMessage log)
         {
-            Logger.InfoFormat("Shard log - {0}", log.ToString());
+            logger.Log(log.Severity.ToLogLevel(), log.Exception, "Shard log - {0}", log.Message ?? string.Empty);
             return Task.CompletedTask;
         }
 
@@ -138,12 +155,11 @@ namespace Reiati.ChillBot.Services
                 {
                     if (!this.listenersAttached)
                     {
-                        var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
-                        var userJoinedHandler = new UserJoinedHandler();
+                        this.messageDispatcher.RequireMention(shard.CurrentUser.Id);
 
                         shard.Log += LogAsyncFromShard;
-                        shard.MessageReceived += messageHandler.HandleMessageReceived;
-                        shard.UserJoined += userJoinedHandler.HandleUserJoin;
+                        shard.MessageReceived += this.messageDispatcher.HandleMessageReceived;
+                        shard.UserJoined += this.userJoinedHandler.HandleUserJoin;
                         // TODO: shard.ReactionAdded
                         this.listenersAttached = true;
                     }

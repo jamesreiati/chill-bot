@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Tools;
 
 namespace Reiati.ChillBot.EventHandlers
@@ -12,7 +12,7 @@ namespace Reiati.ChillBot.EventHandlers
     /// <summary>
     /// Responsible for dispatching messages to a handler, if there is one which can handle the message.
     /// </summary>
-    public class GeneralMessageHandler
+    public class GeneralMessageHandler : IMessageDispatcher
     {
         /// <summary>
         /// Object pool of <see cref="CanHandleResult"/>s.
@@ -30,13 +30,8 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// A logger.
         /// </summary>
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(GeneralMessageHandler));
+        private readonly ILogger logger;
         
-        /// <summary>
-        /// The id assigned to this bot.
-        /// </summary>
-        private readonly Snowflake botId;
-
         /// <summary>
         /// A list of all the message handlers for direct messages.
         /// </summary>
@@ -48,22 +43,31 @@ namespace Reiati.ChillBot.EventHandlers
         private readonly IReadOnlyList<IMessageHandler> guildHandlers;
 
         /// <summary>
+        /// The id assigned to this bot.
+        /// </summary>
+        private Snowflake botId;
+
+        /// <summary>
         /// Constructs a new <see cref="GeneralMessageHandler"/>.
         /// </summary>
-        /// <param name="botId">The id assigned to this bot.</param>
-        public GeneralMessageHandler(Snowflake botId)
+        /// <param name="logger">A logger.</param>
+        /// <param name="messageHandlers">The collection of message handlers to be used by the dispatcher.</param>
+        public GeneralMessageHandler(ILogger<GeneralMessageHandler> logger, IEnumerable<IMessageHandler> messageHandlers)
         {
-            this.botId = botId;
+            this.logger = logger;
             this.dmHandlers = new List<IMessageHandler>()
             {
             };
-            this.guildHandlers = new List<IMessageHandler>()
-            {
-                new NewOptinGuildHandler(),
-                new JoinOptinGuildHandler(),
-                new ListOptinsGuildHandler(),
-                new HelpGuildHandler(),
-            };
+            this.guildHandlers = new List<IMessageHandler>(messageHandlers);
+        }
+
+        /// <summary>
+        /// Set the dispatcher to require the provided bot ID be mentioned in order to distribute the message.
+        /// </summary>
+        /// <param name="botId">The ID of the bot that is required to be mentioned in the message.</param>
+        public void RequireMention(Snowflake botId)
+        {
+            this.botId = botId;
         }
 
         /// <summary>
@@ -75,7 +79,7 @@ namespace Reiati.ChillBot.EventHandlers
         {
             if (message == null)
             {
-                Logger.Info("Message dropped - client emitted a null message");
+                this.logger.LogInformation("Message dropped - client emitted a null message");
                 return;
             }
 
@@ -109,7 +113,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When the message has been handled.</returns>
         private async Task HandleGuildMessage(SocketMessage message)
         {
-            if (!message.MentionedUsers.Any(x => x.Id == this.botId))
+            if (this.botId != default && !message.MentionedUsers.Any(x => x.Id == this.botId))
             {
                 return;
             }
@@ -153,7 +157,7 @@ namespace Reiati.ChillBot.EventHandlers
                         break;
 
                         case CanHandleResult.ResultStatus.TimedOut:
-                            Logger.WarnFormat(
+                            this.logger.LogWarning(
                                 "Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
                                 handler.GetType().Name,
                                 canHandle.TimeOutPeriod,
