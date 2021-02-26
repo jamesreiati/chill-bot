@@ -53,9 +53,9 @@
 > cp .\log4net.example.xml .\log4net.config.xml
 ```
 
-3. Make a copy of `discordtoken.example.txt` and rename it to `discordtoken.txt`. Replace the contents of this file with your API token.
+3. Make a copy of `config.json` and rename it to `config.Local.json`. Replace the value of the `DiscordToken` property in this file with your API token.
 ```
-> cp .\discordtoken.example.txt .\discordtoken.txt
+> cp .\config.json .\config.Local.json
 ```
 
 4. Run the project.

@@ -1,11 +1,12 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Discord.WebSocket;
 using log4net;
 using log4net.Config;
-using Reiati.ChillBot.EventHandlers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Services;
+using System;
+using System.IO;
 
 namespace Reiati.ChillBot
 {
@@ -18,21 +19,6 @@ namespace Reiati.ChillBot
         /// A logger.
         /// </summary>
         private static ILog Logger;
-
-        /// <summary>
-        /// The client(s) used to connect to discord.
-        /// </summary>
-        private static DiscordShardedClient Client;
-
-        /// <summary>
-        /// Whether or not the listeners have already been attached to the client.
-        /// </summary>
-        private static bool ListenersAttached = false;
-
-        /// <summary>
-        /// A lock to prevent listener duplicate hooking.
-        /// </summary>
-        private static object ListenersLock = new object();
 
         /// <summary>
         /// Main entry point for the application.
@@ -51,14 +37,11 @@ namespace Reiati.ChillBot
                 delegate(object sender, ConsoleCancelEventArgs args)
                 {
                     Program.Logger.Info("Shutdown initiated - console");
-                    Program.Client?.StopAsync().GetAwaiter().GetResult();
-                    Program.Client.Dispose();
                 };
 
             try
             {
-                Program.InitializeClient().GetAwaiter().GetResult();
-                Task.Delay(Timeout.Infinite).GetAwaiter().GetResult();
+                CreateHostBuilder(args).Build().Run();
             }
             catch (Exception e)
             {
@@ -87,90 +70,26 @@ namespace Reiati.ChillBot
         }
 
         /// <summary>
-        /// Initializes the clients.
+        /// Creates and configures the builder for the host application.
         /// </summary>
-        /// <returns>When the clients have been initialized and started.</returns>
-        private static async Task InitializeClient()
+        /// <param name="args">Command line arguments.</param>
+        /// <returns></returns>
+        private static IHostBuilder CreateHostBuilder(string[] args)
         {
-            var config = new DiscordSocketConfig
-            {
-                TotalShards = 1,
-            };
-
-            var client = new DiscordShardedClient(config);
-            client.Log += LogAsyncFromClient;
-            client.ShardConnected += ConnectedHandler;
-
-            string token = await File.ReadAllTextAsync(HardCoded.Discord.TokenFilePath);
-
-            await client.LoginAsync(Discord.TokenType.Bot, token.Trim());
-            await client.StartAsync();
-            Program.Client = client;
-        }
-
-        /// <summary>
-        /// Handler for when a shard has connected.
-        /// </summary>
-        /// <param name="shard">The shard which is ready.</param>
-        /// <returns>When the task has completed.</returns>
-        private static Task ConnectedHandler(DiscordSocketClient shard)
-        {
-            Program.Logger.InfoFormat("Shard connected;{{shardId:{0}}}", shard.ShardId);
-            Program.AttachListenersIfNeeded(shard);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Forwards all client logs to the console.
-        /// </summary>
-        /// <param name="log">The client log.</param>
-        /// <returns>When the task has completed.</returns>
-        private static Task LogAsyncFromClient(Discord.LogMessage log)
-        {
-            Program.Logger.InfoFormat("Client log - {0}", log.ToString());
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Fowards all shard logs to the console.
-        /// </summary>
-        /// <param name="log">The shard log.</param>
-        /// <returns>When the task has completed.</returns>
-        private static Task LogAsyncFromShard(Discord.LogMessage log)
-        {
-            Program.Logger.InfoFormat("Shard log - {0}", log.ToString());
-            return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// Creates and hooks the listeners to their respective events on all shards.
-        /// </summary>
-        /// <param name="shard">Any single shard.</param>
-        /// <remarks>
-        /// Events connected to 1 shard will be connected to all shards. If the listeners are attached once, they never
-        /// have to be attached again.
-        /// Source: https://github.com/discord-net/Discord.Net/blob/2.3.0/docs/faq/basics/client-basics.md#what-is-a-shardsharded-client-and-how-is-it-different-from-the-discordsocketclient
-        /// </remarks>
-        private static void AttachListenersIfNeeded(DiscordSocketClient shard)
-        {
-            if (!Program.ListenersAttached)
-            {
-                lock (Program.ListenersLock)
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(logging => logging.ClearProviders())  // Logging is configured outside of the Host Builder
+                .ConfigureAppConfiguration(configBuilder =>
                 {
-                    if (!Program.ListenersAttached)
-                    {
-                        var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
-                        var userJoinedHandler = new UserJoinedHandler();
-
-                        shard.Log += LogAsyncFromShard;
-                        shard.MessageReceived += messageHandler.HandleMessageReceived;
-                        shard.UserJoined += userJoinedHandler.HandleUserJoin;
-                        // TODO: shard.ReactionAdded
-                        Program.ListenersAttached = true;
-                    }
-                }
-            }
+                    configBuilder.AddJsonFile(HardCoded.Config.DefaultConfigFilePath, optional: true);
+                    configBuilder.AddJsonFile(HardCoded.Config.LocalConfigFilePath, optional: true);
+                    configBuilder.AddEnvironmentVariables(prefix: HardCoded.Config.EnvironmentVariablePrefix);
+                    configBuilder.AddCommandLine(args);
+                })
+                .ConfigureServices(services =>
+                {
+                    services.AddHostedService<ChillBotService>();
+                })
+                .UseConsoleLifetime();
         }
     }
 }
