@@ -18,6 +18,11 @@ namespace Reiati.ChillBot.HardCoded
         public const string DiscordTokenConfigKey = "DiscordToken";
 
         /// <summary>
+        /// The configuration key of the Application Insights instrumentation key setting.
+        /// </summary>
+        public const string ApplicationInsightsInstrumentationKeyConfigKey = "ApplicationInsights:InstrumentationKey";
+
+        /// <summary>
         /// The path to the default config file.
         /// </summary>
         public static readonly string DefaultConfigFilePath = Path.Combine(".", "config.json");

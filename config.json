@@ -1,5 +1,8 @@
 {
   "DiscordToken": "abcdefghijklmnopqrstuvwxyz",
+  "ApplicationInsights": {
+    "InstrumentationKey": ""
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",

@@ -60,7 +60,9 @@
 
 4. (Optional) If you would like to customize the way logs are displayed, edit the `Logging` section of `config.Local.json` as described [here](https://docs.microsoft.com/dotnet/core/extensions/logging#configure-logging).
 
-5. Run the project.
+5. (Optional) If you would like to send logs to [Application Insights](https://docs.microsoft.com/azure/azure-monitor/app/app-insights-overview), edit the `config.Local.json` file and replace the value of the `ApplicationInsights:InstrumentationKey` property with your instrumentation key. You may also control the level of logs sent to Application Insights by adding filter rules to the `Logging` section of the file as described [here](https://docs.microsoft.com/azure/azure-monitor/app/ilogger#create-filter-rules-in-configuration-with-appsettingsjson).
+
+6. Run the project.
 ```
 > dotnet run
 ```

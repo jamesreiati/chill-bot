@@ -60,7 +60,17 @@ namespace Reiati.ChillBot
         private static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(Program.ConfigureBaseLogging)
+                .ConfigureLogging((host, logging) =>
+                {
+                    Program.ConfigureBaseLogging(logging);
+
+                    // Configure Application Insights if an instrumentation key is provided
+                    string instrumentationKey = host.Configuration[HardCoded.Config.ApplicationInsightsInstrumentationKeyConfigKey];
+                    if (!string.IsNullOrEmpty(instrumentationKey))
+                    {
+                        logging.AddApplicationInsights(instrumentationKey);
+                    }
+                })
                 .ConfigureAppConfiguration(configBuilder =>
                 {
                     configBuilder.AddJsonFile(HardCoded.Config.DefaultConfigFilePath, optional: true);
