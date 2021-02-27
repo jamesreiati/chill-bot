@@ -30,12 +30,15 @@ namespace Reiati.ChillBot.EventHandlers
 
         /// <summary>
         /// The matcher for detecting the phrases:
-        /// - <@123> join {1}
-        /// - <@123> join #{1}
-        /// And captures the proposed channel name into group 1
+        /// - <@123> join {channel}
+        /// - <@123> join #{channel}
+        /// - <@123> join opt-in {channel}
+        /// - <@123> join opt in {channel}
+        /// - <@123> join optin {channel}
+        /// And captures the proposed channel name into the named capture group "channel"
         /// </summary>
         private static Regex matcher = new Regex(
-            @"^\s*\<\@\!?\d+\>\s*join\s+#?(\S+)$",
+            @"^\s*\<\@\!?\d+\>\s*join(\s+opt(?:-|\s)?in)?\s+#?(?<channel>\S+)$",
             RegexOptions.IgnoreCase,
             HardCoded.Handlers.DefaultRegexTimeout);
 
@@ -62,7 +65,7 @@ namespace Reiati.ChillBot.EventHandlers
             var messageChannel = message.Channel as SocketGuildChannel;
             var author = message.Author as SocketGuildUser;
             var guildConnection = messageChannel.Guild;
-            var channelName = handleCache.Groups[1].Captures[0].Value;
+            var channelName = handleCache.Groups["channel"].Captures[0].Value;
 
             var checkoutResult = checkoutResultPool.Get();
             try
