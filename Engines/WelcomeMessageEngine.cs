@@ -7,17 +7,17 @@ using log4net;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 
-namespace Reiati.ChillBot.EventHandlers
+namespace Reiati.ChillBot.Engines
 {
     /// <summary>
-    /// Responsible for handling user joined events.
+    /// Responsible for performing the welcome message.
     /// </summary>
-    public class UserJoinedHandler
+    public class WelcomeMessageEngine
     {
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(JoinOptinGuildHandler));
+        private static ILog Logger = LogManager.GetLogger(typeof(WelcomeMessageEngine));
 
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
@@ -62,7 +62,7 @@ namespace Reiati.ChillBot.EventHandlers
                                     guild.WelcomeChannel.GetValueOrDefault().Value);
                                 
                                 await welcomeChannel.SendMessageAsync(
-                                    UserJoinedHandler.GetWelcomeMessage(user.Guild, guild, user.Id));
+                                    WelcomeMessageEngine.GetWelcomeMessage(user.Guild, guild, user.Id));
                             }
                         }
                     break;

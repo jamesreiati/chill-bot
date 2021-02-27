@@ -5,14 +5,19 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using log4net;
+using Reiati.ChillBot.EventHandlers;
 using Reiati.ChillBot.Tools;
 
-namespace Reiati.ChillBot.EventHandlers
+namespace Reiati.ChillBot.Engines
 {
     /// <summary>
-    /// Responsible for dispatching messages to a handler, if there is one which can handle the message.
+    /// Responsible for setting up command handlers and dispatching messages them.
     /// </summary>
-    public class GeneralMessageHandler
+    /// <remarks>
+    /// None of the handlers may execute before the client has completely connected. This shouldn't be an issue though
+    /// because the client shouldn't emit any events before it has completely connected.
+    /// </remarks>
+    public class CommandEngine
     {
         /// <summary>
         /// Object pool of <see cref="CanHandleResult"/>s.
@@ -30,12 +35,17 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// A logger.
         /// </summary>
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(GeneralMessageHandler));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(CommandEngine));
         
         /// <summary>
         /// The id assigned to this bot.
         /// </summary>
-        private readonly Snowflake botId;
+        private readonly Lazy<Snowflake> botId;
+
+        /// <summary>
+        /// A discord client to make queries to.
+        /// </summary>
+        private readonly BaseSocketClient discordClient;
 
         /// <summary>
         /// A list of all the message handlers for direct messages.
@@ -48,22 +58,36 @@ namespace Reiati.ChillBot.EventHandlers
         private readonly IReadOnlyList<IMessageHandler> guildHandlers;
 
         /// <summary>
-        /// Constructs a new <see cref="GeneralMessageHandler"/>.
+        /// Constructs a new <see cref="CommandEngine"/>.
         /// </summary>
-        /// <param name="botId">The id assigned to this bot.</param>
-        public GeneralMessageHandler(Snowflake botId)
+        /// <param name="discordClient">A client to interact with discord. May not be null.</param>
+        public CommandEngine(BaseSocketClient discordClient)
         {
-            this.botId = botId;
+            ValidateArg.IsNotNull(discordClient, nameof(discordClient));
+            this.discordClient = discordClient;
+            this.botId = new Lazy<Snowflake>(this.GetBotId);
+
             this.dmHandlers = new List<IMessageHandler>()
             {
+                new HelpDmHandler(),
+                new LeaveOptinDmHandler(),
             };
             this.guildHandlers = new List<IMessageHandler>()
             {
-                new NewOptinGuildHandler(),
+                new HelpGuildHandler(),
                 new JoinOptinGuildHandler(),
                 new ListOptinsGuildHandler(),
-                new HelpGuildHandler(),
+                new NewOptinGuildHandler(),
             };
+        }
+
+        /// <summary>
+        /// Helper method (for the Lazy field) to get the bot's id.
+        /// </summary>
+        /// <returns>An id representing the bot.</returns>
+        private Snowflake GetBotId()
+        {
+            return this.discordClient.CurrentUser.Id;
         }
 
         /// <summary>
@@ -88,14 +112,14 @@ namespace Reiati.ChillBot.EventHandlers
             var guildChannel = message.Channel as SocketGuildChannel;
             if (guildChannel != null)
             {
-                await this.HandleGuildMessage(message);
+                await this.HandleGuildMessage(message).ConfigureAwait(false);
                 return;
             }
 
             var dmChannel = message.Channel as SocketDMChannel;
             if (dmChannel != null)
             {
-                await this.HandleDirectMessage(message);
+                await this.HandleDirectMessage(message).ConfigureAwait(false);
                 return;
             }
 
@@ -109,12 +133,12 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When the message has been handled.</returns>
         private async Task HandleGuildMessage(SocketMessage message)
         {
-            if (!message.MentionedUsers.Any(x => x.Id == this.botId))
+            if (!message.MentionedUsers.Any(x => x.Id == this.botId.Value))
             {
                 return;
             }
 
-            await this.HandleMessage(message, this.guildHandlers);
+            await this.HandleMessage(message, this.guildHandlers).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -124,7 +148,12 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When the message has been handled.</returns>
         private async Task HandleDirectMessage(SocketMessage message)
         {
-            await this.HandleMessage(message, this.dmHandlers);
+            if (message.Author.MutualGuilds.Count <= 0)
+            {
+                return;
+            }
+
+            await this.HandleMessage(message, this.dmHandlers).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -136,7 +165,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When the message has been handled.</returns>
         private async Task HandleMessage(SocketMessage message, IReadOnlyList<IMessageHandler> handlers)
         {
-            var handleResult = GeneralMessageHandler.handleResultPool.Get();
+            var handleResult = CommandEngine.handleResultPool.Get();
             try
             {
                 bool wasHandled = false;
@@ -144,12 +173,13 @@ namespace Reiati.ChillBot.EventHandlers
                 for (int i = 0; i < handlers.Count && !wasHandled; i += 1)
                 {
                     var handler = handlers[i];
-                    var canHandle = await handler.CanHandleMessage(message, recycleResult: handleResult);
+                    var canHandle = await handler.CanHandleMessage(message, recycleResult: handleResult)
+                        .ConfigureAwait(false);
                     switch (canHandle.Status)
                     {
                         case CanHandleResult.ResultStatus.Handleable:
                             wasHandled = true;
-                            await handler.HandleMessage(message, canHandle.HandleCache);
+                            await handler.HandleMessage(message, canHandle.HandleCache).ConfigureAwait(false);
                         break;
 
                         case CanHandleResult.ResultStatus.TimedOut:
@@ -170,13 +200,13 @@ namespace Reiati.ChillBot.EventHandlers
 
                 if (!wasHandled)
                 {
-                    await message.AddReactionAsync(NoMatchEmoji);
+                    await message.AddReactionAsync(NoMatchEmoji).ConfigureAwait(false);
                 }
             }
             finally
             {
                 handleResult.ClearReferences();
-                GeneralMessageHandler.handleResultPool.Return(handleResult);
+                CommandEngine.handleResultPool.Return(handleResult);
             }
         }
     }

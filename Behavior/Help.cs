@@ -9,9 +9,9 @@ namespace Reiati.ChillBot.Behavior
     public class Help
     {
         /// <summary>
-        /// All of the commands this bot recognizes.
+        /// All of the commands this bot recognizes via guild.
         /// </summary>
-        private static CommandDetails[] allCommands = new []
+        private static CommandDetails[] guildCommands = new []
         {
             new CommandDetails(
                 "list opt-ins",
@@ -25,9 +25,24 @@ namespace Reiati.ChillBot.Behavior
         };
 
         /// <summary>
-        /// All of the commands this bot recognizes.
+        /// All of the commands this bot recognizes via DM.
         /// </summary>
-        public static IReadOnlyCollection<CommandDetails> AllCommands => allCommands;
+        private static CommandDetails[] dmCommands = new []
+        {
+            new CommandDetails(
+                "leave opt-in *channel-name*",
+                "Removes you from the channel given.")
+        };
+
+        /// <summary>
+        /// All of the commands this bot recognizes via guild.
+        /// </summary>
+        public static IReadOnlyCollection<CommandDetails> GuildCommands => guildCommands;
+
+        /// <summary>
+        /// All of the commands this bot recognizes via DM.
+        /// </summary>
+        public static IReadOnlyCollection<CommandDetails> DmCommands => dmCommands;
 
         /// <summary>
         /// Details about a command.

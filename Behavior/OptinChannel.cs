@@ -71,20 +71,21 @@ namespace Reiati.ChillBot.Behavior
             {
                 settings.CategoryId = optinsCategory.Value;
                 settings.Topic = description ?? string.Empty;
-            });
+            }).ConfigureAwait(false);
 
             var createdRole = await guildConnection.CreateRoleAsync(
                 name: OptinChannel.GetRoleName(createdTextChannel.Id),
                 permissions: null,
                 color: null,
                 isHoisted: false,
-                isMentionable: false);
+                isMentionable: false)
+                .ConfigureAwait(false);
 
             var newPermissions = createdTextChannel.AddPermissionOverwriteAsync(
                 role: createdRole,
                 permissions: new OverwritePermissions(viewChannel: PermValue.Allow));
 
-            await requestAuthor.AddRoleAsync(createdRole);
+            await requestAuthor.AddRoleAsync(createdRole).ConfigureAwait(false);
 
             return CreateResult.Success;
         }
@@ -129,8 +130,53 @@ namespace Reiati.ChillBot.Behavior
                 return JoinResult.RoleMissing;
             }
 
-            await requestAuthor.AddRoleAsync(role);
+            await requestAuthor.AddRoleAsync(role).ConfigureAwait(false);
             return JoinResult.Success;
+        }
+
+
+        /// <summary>
+        /// Leave an opt-in channel.
+        /// </summary>
+        /// <param name="guildConnection">
+        /// The connection to the guild the user is trying to join a channel in. May not be null.
+        /// </param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="requestAuthor">The author of the join channel request. May not be null.</param>
+        /// <param name="channelName">The name of the channel to join.</param>
+        /// <returns>The result of the request.</returns>
+        public static async Task<LeaveResult> Leave(
+            SocketGuild guildConnection,
+            Guild guildData,
+            SocketGuildUser requestAuthor,
+            string channelName)
+        {
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                return LeaveResult.NoOptinCategory;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var requestedChannel = optinsCategoryConnection.Channels
+                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0);
+
+            if (requestedChannel == null)
+            {
+                return LeaveResult.NoSuchChannel;
+            }
+            
+            var associatedRoleName = OptinChannel.GetRoleName(requestedChannel.Id);
+            var role = guildConnection.Roles
+                .FirstOrDefault(x => string.Compare(x.Name, associatedRoleName, ignoreCase: false) == 0);
+
+            if (role == null)
+            {
+                return LeaveResult.RoleMissing;
+            }
+
+            await requestAuthor.RemoveRoleAsync(role).ConfigureAwait(false);
+            return LeaveResult.Success;
         }
 
         /// <summary>
@@ -196,6 +242,24 @@ namespace Reiati.ChillBot.Behavior
         public enum JoinResult
         {
             /// <summary>The user was given added to the opt-in channel.</summary>
+            Success,
+
+            /// <summary>The channel name given does not exist as an opt-in channel (or at all.)</summary>
+            NoSuchChannel,
+
+            /// <summary>The server has no Opt-in channel category.</summary>
+            NoOptinCategory,
+
+            /// <summary>The server has no role associated with the opt-in channel.</summary>
+            RoleMissing,
+        }
+
+        /// <summary>
+        /// Result type of a <see cref="OptinChannel.Join(SocketGuild, Guild, SocketGuildUser, string)"/> call.
+        /// </summary>
+        public enum LeaveResult
+        {
+            /// <summary>The user was removed from the opt-in channel.</summary>
             Success,
 
             /// <summary>The channel name given does not exist as an opt-in channel (or at all.)</summary>

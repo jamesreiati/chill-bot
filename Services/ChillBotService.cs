@@ -2,7 +2,7 @@
 using log4net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Reiati.ChillBot.EventHandlers;
+using Reiati.ChillBot.Engines;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,16 +27,6 @@ namespace Reiati.ChillBot.Services
         /// The client used to connect to Discord.
         /// </summary>
         private DiscordShardedClient client;
-
-        /// <summary>
-        /// Whether the listeners have already been attached to the client.
-        /// </summary>
-        private bool listenersAttached = false;
-
-        /// <summary>
-        /// A lock to prevent listener duplicate hooking.
-        /// </summary>
-        private object listenersLock = new object();
 
         /// <summary>
         /// Constructs a new <see cref="ChillBotService"/>.
@@ -76,8 +66,15 @@ namespace Reiati.ChillBot.Services
             };
 
             var client = new DiscordShardedClient(config);
-            client.Log += LogAsyncFromClient;
-            client.ShardConnected += ConnectedHandler;
+            client.Log += ChillBotService.ForwardLogToLogging;
+            client.ShardConnected += ChillBotService.LogShardConnected;
+
+            var messageHandler = new CommandEngine(client);
+            var userJoinedHandler = new WelcomeMessageEngine();
+
+            client.MessageReceived += messageHandler.HandleMessageReceived;
+            client.UserJoined += userJoinedHandler.HandleUserJoin;
+            client.GuildAvailable += ChillBotService.BeginMembersDownload;
 
             string token = configuration[HardCoded.Config.DiscordTokenConfigKey];
 
@@ -91,10 +88,9 @@ namespace Reiati.ChillBot.Services
         /// </summary>
         /// <param name="shard">The shard which is ready.</param>
         /// <returns>When the task has completed.</returns>
-        private Task ConnectedHandler(DiscordSocketClient shard)
+        private static Task LogShardConnected(DiscordSocketClient shard)
         {
             Logger.InfoFormat("Shard connected;{{shardId:{0}}}", shard.ShardId);
-            AttachListenersIfNeeded(shard);
             return Task.CompletedTask;
         }
 
@@ -103,52 +99,22 @@ namespace Reiati.ChillBot.Services
         /// </summary>
         /// <param name="log">The client log.</param>
         /// <returns>When the task has completed.</returns>
-        private Task LogAsyncFromClient(Discord.LogMessage log)
+        private static Task ForwardLogToLogging(Discord.LogMessage log)
         {
             Logger.InfoFormat("Client log - {0}", log.ToString());
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// Fowards all shard logs to the console.
+        /// Starts the task to download the guild's users into the client's cache.
+        /// Should be invoked upon GuildAvailable.
         /// </summary>
-        /// <param name="log">The shard log.</param>
+        /// <param name="guild">The guild made available.</param>
         /// <returns>When the task has completed.</returns>
-        private Task LogAsyncFromShard(Discord.LogMessage log)
+        private static Task BeginMembersDownload(SocketGuild guild)
         {
-            Logger.InfoFormat("Shard log - {0}", log.ToString());
+            var ignoreAwait = guild.DownloadUsersAsync();
             return Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// Creates and hooks the listeners to their respective events on all shards.
-        /// </summary>
-        /// <param name="shard">Any single shard.</param>
-        /// <remarks>
-        /// Events connected to 1 shard will be connected to all shards. If the listeners are attached once, they never
-        /// have to be attached again.
-        /// Source: https://github.com/discord-net/Discord.Net/blob/2.3.0/docs/faq/basics/client-basics.md#what-is-a-shardsharded-client-and-how-is-it-different-from-the-discordsocketclient
-        /// </remarks>
-        private void AttachListenersIfNeeded(DiscordSocketClient shard)
-        {
-            if (!this.listenersAttached)
-            {
-                lock (this.listenersLock)
-                {
-                    if (!this.listenersAttached)
-                    {
-                        var messageHandler = new GeneralMessageHandler(shard.CurrentUser.Id);
-                        var userJoinedHandler = new UserJoinedHandler();
-
-                        shard.Log += LogAsyncFromShard;
-                        shard.MessageReceived += messageHandler.HandleMessageReceived;
-                        shard.UserJoined += userJoinedHandler.HandleUserJoin;
-                        // TODO: shard.ReactionAdded
-                        this.listenersAttached = true;
-                    }
-                }
-            }
         }
     }
 }

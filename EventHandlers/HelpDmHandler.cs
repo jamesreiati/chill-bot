@@ -8,14 +8,14 @@ using Reiati.ChillBot.Behavior;
 namespace Reiati.ChillBot.EventHandlers
 {
     /// <summary>
-    /// Responsible for handling messages in a guild, asking for help.
+    /// Responsible for handling messages in a DM, asking for help
     /// </summary>
-    public class HelpGuildHandler : AbstractRegexHandler
+    public class HelpDmHandler : AbstractRegexHandler
     {
         /// <summary>
         /// The text to return when the help command is invoked.
         /// </summary>
-        private static readonly string HelpMessage = HelpGuildHandler.BuildHelpMessage();
+        private static readonly string HelpMessage = HelpDmHandler.BuildHelpMessage();
 
         /// <summary>
         /// The matcher for detecting the phrases:
@@ -24,15 +24,15 @@ namespace Reiati.ChillBot.EventHandlers
         /// - <@123> --help
         /// </summary>
         private static Regex matcher = new Regex(
-            @"^\s*\<\@\!?\d+\>\s*-{0,2}!?help\s*$",
+            @"^\s*-{0,2}!?help\s*$",
             RegexOptions.IgnoreCase,
             HardCoded.Handlers.DefaultRegexTimeout);
 
         /// <summary>
-        /// Constructs a <see cref="HelpGuildHandler"/>.
+        /// Constructs a <see cref="HelpDmHandler"/>.
         /// </summary>
-        public HelpGuildHandler()
-            : base(HelpGuildHandler.matcher)
+        public HelpDmHandler()
+            : base(HelpDmHandler.matcher)
         { }
 
         /// <summary>
@@ -43,8 +43,8 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>The handle task.</returns>
         protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
         {
-            var messageChannel = message.Channel as SocketGuildChannel;
-            await message.Channel.SendMessageAsync(HelpGuildHandler.HelpMessage);
+            var messageChannel = message.Channel as SocketDMChannel;
+            await message.Channel.SendMessageAsync(HelpDmHandler.HelpMessage);
         }
 
         /// <summary>
@@ -57,12 +57,10 @@ namespace Reiati.ChillBot.EventHandlers
 
             builder.Append("Here is every command I can respond to:");
 
-            foreach(var command in Help.GuildCommands)
+            foreach(var command in Help.DmCommands)
             {
                 builder.AppendFormat("\n| {0} - {1}", command.usage, command.description);
             }
-
-            builder.Append("\nThere are more commands I can respond to if you send me a direct message.");
 
             return builder.ToString();
         }
