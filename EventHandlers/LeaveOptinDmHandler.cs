@@ -40,10 +40,11 @@ namespace Reiati.ChillBot.EventHandlers
         /// - leave opt-in #{1}
         /// - leave optin {1}
         /// - leave opt in {1}
-        /// And captures the proposed channel name into group 1
+        /// - <@123> leave opt-in #{1}
+        /// And captures the proposed channel name into the named capture group "channel"
         /// </summary>
         private static Regex matcher = new Regex(
-            @"^\s*leave\s+opt(?:-|\s)?in\s+#?(\S+)$",
+            @"^\s*(\<\@\!?\d+\>\s*)?leave\s+opt(?:-|\s)?in\s+#?(?<channel>\S+)$",
             RegexOptions.IgnoreCase,
             HardCoded.Handlers.DefaultRegexTimeout);
 
@@ -80,7 +81,7 @@ namespace Reiati.ChillBot.EventHandlers
 
             var guildConnection = mutualGuilds.Single();//this.discordClient.GetGuild(mutualGuilds.Single().Value);
             var requestAuthor = guildConnection.GetUser(author.Id);
-            var channelName = handleCache.Groups[1].Captures[0].Value;
+            var channelName = handleCache.Groups["channel"].Captures[0].Value;
 
             var checkoutResult = checkoutResultPool.Get();
             try
