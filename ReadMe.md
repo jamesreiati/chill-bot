@@ -3,7 +3,7 @@ Chill Bot
 
 A discord bot which provides opt-in rooms and public invite only rooms.
 
-A common problem with running a Discord server is that what might have started as a small group chat can turn into a small community of people, most of whom you barely know. Some people thrive in an environment with large amount of strangers, but others do not, and will start to draw back. I found I was able to get the participation of some of those people back by limiting their audience size. By creating individual rooms that people can join, you can shrink a conversation's audience, without having to purposeful exclude anyone.
+A common problem with running a Discord server is that what might have started as a small group chat can turn into a small community of people, many of whom don't know each other. Some people thrive in an environment with large amount of strangers, but others do not, and will start to draw back. I found I was able to get the participation of some of those people back by limiting their audience size. By creating individual rooms that people can join, you can shrink a conversation's audience, without having to purposeful exclude anyone.
 
 ## How It Works
 
