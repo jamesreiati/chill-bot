@@ -1,8 +1,9 @@
 ﻿using Discord.WebSocket;
-using log4net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Engines;
+using Reiati.ChillBot.Tools;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace Reiati.ChillBot.Services
         /// <summary>
         /// A logger.
         /// </summary>
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(ChillBotService));
+        private static readonly ILogger Logger = LogManager.GetLogger(typeof(ChillBotService));
 
         /// <summary>
         /// Application configuration.
@@ -90,7 +91,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task LogShardConnected(DiscordSocketClient shard)
         {
-            Logger.InfoFormat("Shard connected;{{shardId:{0}}}", shard.ShardId);
+            Logger.LogInformation("Shard connected;{{shardId:{0}}}", shard.ShardId);
             return Task.CompletedTask;
         }
 
@@ -101,7 +102,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task ForwardLogToLogging(Discord.LogMessage log)
         {
-            Logger.InfoFormat("Client log - {0}", log.ToString());
+            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {0}", log.Message ?? string.Empty);
             return Task.CompletedTask;
         }
 

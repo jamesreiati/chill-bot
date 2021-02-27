@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Reiati.ChillBot.Tools;

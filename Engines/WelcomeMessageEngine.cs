@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.WebSocket;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 
@@ -17,7 +17,7 @@ namespace Reiati.ChillBot.Engines
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(WelcomeMessageEngine));
+        private static ILogger Logger = LogManager.GetLogger(typeof(WelcomeMessageEngine));
 
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
@@ -78,7 +78,7 @@ namespace Reiati.ChillBot.Engines
             }
             catch (Exception e)
             {
-                Logger.ErrorFormat("Welcome dropped - exception thrown;{{exception:{0}}}", e.ToString());
+                Logger.LogError(e, "Welcome dropped - exception thrown");
             }
             finally
             {

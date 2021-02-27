@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.EventHandlers;
 using Reiati.ChillBot.Tools;
 
@@ -35,7 +35,7 @@ namespace Reiati.ChillBot.Engines
         /// <summary>
         /// A logger.
         /// </summary>
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(CommandEngine));
+        private static readonly ILogger Logger = LogManager.GetLogger(typeof(CommandEngine));
         
         /// <summary>
         /// The id assigned to this bot.
@@ -99,7 +99,7 @@ namespace Reiati.ChillBot.Engines
         {
             if (message == null)
             {
-                Logger.Info("Message dropped - client emitted a null message");
+                Logger.LogInformation("Message dropped - client emitted a null message");
                 return;
             }
 
@@ -183,7 +183,7 @@ namespace Reiati.ChillBot.Engines
                         break;
 
                         case CanHandleResult.ResultStatus.TimedOut:
-                            Logger.WarnFormat(
+                            Logger.LogWarning(
                                 "Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
                                 handler.GetType().Name,
                                 canHandle.TimeOutPeriod,

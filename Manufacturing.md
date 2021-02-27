@@ -58,7 +58,9 @@
 > cp .\config.json .\config.Local.json
 ```
 
-4. Run the project.
+4. (Optional) If you would like to customize the way logs are displayed, edit the `Logging` section of `config.Local.json` as described [here](https://docs.microsoft.com/dotnet/core/extensions/logging#configure-logging).
+
+5. Run the project.
 ```
 > dotnet run
 ```
