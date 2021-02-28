@@ -1,3 +1,12 @@
 {
-  "DiscordToken": "abcdefghijklmnopqrstuvwxyz"
+  "DiscordToken": "abcdefghijklmnopqrstuvwxyz",
+  "ApplicationInsights": {
+    "InstrumentationKey": ""
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Reiati.ChillBot": "Information"
+    }
+  }
 }

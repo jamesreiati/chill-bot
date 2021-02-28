@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
 using Discord.WebSocket;
-using log4net;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
+using Microsoft.Extensions.Logging;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -19,7 +19,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// A logger.
         /// </summary>
-        private static ILog Logger = LogManager.GetLogger(typeof(ListOptinsGuildHandler));
+        private static ILogger Logger = LogManager.GetLogger(typeof(ListOptinsGuildHandler));
 
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
@@ -109,7 +109,7 @@ namespace Reiati.ChillBot.EventHandlers
             }
             catch (Exception e)
             {
-                Logger.ErrorFormat("Request dropped - exception thrown;{{exception:{0}}}", e.ToString());
+                Logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
                     messageReference: message.Reference);
