@@ -99,8 +99,6 @@ _ReSharper*/
 .vscode/
 
 # Dev Configuration Files
-log4net.config.xml
-discordtoken.txt
 config.Local.json
 
 # Runtime Data
