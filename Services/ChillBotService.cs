@@ -39,6 +39,7 @@ namespace Reiati.ChillBot.Services
         /// Constructs a new <see cref="ChillBotService"/>.
         /// </summary>
         /// <param name="configuration">Application configuration.</param>
+        /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         public ChillBotService(IConfiguration configuration, IGuildRepository guildRepository)
         {
             this.configuration = configuration;

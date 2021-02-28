@@ -67,6 +67,7 @@ namespace Reiati.ChillBot.Engines
         /// Constructs a new <see cref="CommandEngine"/>.
         /// </summary>
         /// <param name="discordClient">A client to interact with discord. May not be null.</param>
+        /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         public CommandEngine(BaseSocketClient discordClient, IGuildRepository guildRepository)
         {
             ValidateArg.IsNotNull(discordClient, nameof(discordClient));

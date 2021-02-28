@@ -94,6 +94,11 @@ namespace Reiati.ChillBot
                         default:
                             services.AddSingleton<IGuildRepository>(FileBasedGuildRepository.Instance);
                             break;
+                        case GuildRepositoryType.AzureBlob:
+                            string connectionString = host.Configuration[string.Format(HardCoded.Config.GuildRepositoryConnectionStringConfigKeyFormat, guildRepositoryType)];
+                            string container = host.Configuration[string.Format(HardCoded.Config.GuildRepositoryContainerConfigKeyFormat, guildRepositoryType)];
+                            services.AddSingleton<IGuildRepository>(new AzureBlobGuildRepository(connectionString, container));
+                            break;
                     }
 
                     services.AddHostedService<ChillBotService>();

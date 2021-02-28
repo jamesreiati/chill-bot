@@ -39,6 +39,10 @@ namespace Reiati.ChillBot.Engines
         /// </summary>
         private IGuildRepository guildRepository;
 
+        /// <summary>
+        /// Constructs a new <see cref="WelcomeMessageEngine"/>.
+        /// </summary>
+        /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         public WelcomeMessageEngine(IGuildRepository guildRepository)
         {
             ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));

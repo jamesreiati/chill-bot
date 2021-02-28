@@ -55,6 +55,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// Constructs a <see cref="JoinOptinGuildHandler"/>.
         /// </summary>
+        /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         public JoinOptinGuildHandler(IGuildRepository guildRepository)
             : base(JoinOptinGuildHandler.matcher)
         {
