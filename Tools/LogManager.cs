@@ -12,7 +12,7 @@ namespace Reiati.ChillBot.Tools
         /// <summary>
         /// The factory to use to create <see cref="ILogger"/> instances.
         /// </summary>
-        private static ILoggerFactory loggerFactory = NullLoggerFactory.Instance;
+        private static ILoggerFactory LoggerFactory = NullLoggerFactory.Instance;
 
         /// <summary>
         /// Configure the <see cref="LogManager"/> to use the provided <see cref="ILoggerFactory"/> when creating logger instances.
@@ -21,7 +21,7 @@ namespace Reiati.ChillBot.Tools
         public static void Configure(ILoggerFactory loggerFactory)
         {
             ValidateArg.IsNotNull(loggerFactory, nameof(loggerFactory));
-            LogManager.loggerFactory = loggerFactory;
+            LogManager.LoggerFactory = loggerFactory;
         }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace Reiati.ChillBot.Tools
         /// <returns>A new <see cref="ILogger"/> instance.</returns>
         public static ILogger GetLogger(string categoryName)
         {
-            return loggerFactory?.CreateLogger(categoryName);
+            return LoggerFactory.CreateLogger(categoryName);
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Reiati.ChillBot.Tools
         /// <returns>A new <see cref="ILogger"/> instance.</returns>
         public static ILogger GetLogger(Type type)
         {
-            return loggerFactory?.CreateLogger(type);
+            return LoggerFactory.CreateLogger(type);
         }
     }
 }
