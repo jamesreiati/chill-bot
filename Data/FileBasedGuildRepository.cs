@@ -10,7 +10,7 @@ namespace Reiati.ChillBot.Data
     /// <summary>
     /// A repository of <see cref="Guild"/> objects to be checked out and checked in.
     /// </summary>
-    public class FileBasedGuildRepository
+    public class FileBasedGuildRepository : IGuildRepository
     {
         /// <summary>
         /// HRResult of the exception when the file is already in use.
@@ -44,9 +44,9 @@ namespace Reiati.ChillBot.Data
         /// <param name="guildId">An id representing a guild.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The borrowed guild.</returns>
-        public async Task<CheckoutResult> Checkout(Snowflake guildId, CheckoutResult recycleResult = null)
+        public async Task<GuildCheckoutResult> Checkout(Snowflake guildId, GuildCheckoutResult recycleResult = null)
         {
-            var retVal = recycleResult ?? new CheckoutResult();
+            var retVal = recycleResult ?? new GuildCheckoutResult();
 
             try
             {
@@ -243,73 +243,6 @@ namespace Reiati.ChillBot.Data
             public const string OptinCreatorsRoles = "OptinCreatorsRoles";
             public const string OptinParentCatgory = "OptinParentCatgory";
             public const string WelcomeChannel = "WelcomeChannel";
-        }
-
-        /// <summary>
-        /// The result of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
-        /// </summary>
-        /// <remarks>Designed to be poolable. Mimics the structure of a discriminated union.</remarks>
-        public sealed class CheckoutResult
-        {
-            /// <summary>
-            /// The type of this result.
-            /// </summary>
-            public ResultType Result { get; private set; }
-
-            /// <summary>
-            /// [<see cref="ResultType.Success"/>] The <see cref="Data.Guild"/> associated with the given id.
-            /// </summary>
-            public Borrowed<Guild> BorrowedGuild { get; private set; }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.Success"/> type.
-            /// </summary>
-            /// <param name="borrowedGuild">The borrowed guild to return.</param>
-            public void ToSuccess(Borrowed<Guild> borrowedGuild)
-            {
-                this.Result = ResultType.Success;
-                this.BorrowedGuild = borrowedGuild;
-            }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.DoesNotExist"/> type.
-            /// </summary>
-            public void ToDoesNotExist()
-            {
-                this.Result = ResultType.DoesNotExist;
-            }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.Locked"/> type.
-            /// </summary>
-            public void ToLocked()
-            {
-                this.Result = ResultType.Locked;
-            }
-
-            /// <summary>
-            /// Drops all references to objects.
-            /// </summary>
-            /// <remarks>Useful call before returning to a pool.</remarks>
-            public void ClearReferences()
-            {
-                this.BorrowedGuild = null;
-            }
-
-            /// <summary>
-            /// Result type of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
-            /// </summary>
-            public enum ResultType
-            {
-                /// <summary>A <see cref="Data.Guild"/> was successfully checked out.</summary>
-                Success,
-
-                /// <summary>No guild was associated with the given guild id.</summary>
-                DoesNotExist,
-
-                /// <summary>This guild is currently in use, try again later.</summary>
-                Locked,
-            }
         }
     }
 }

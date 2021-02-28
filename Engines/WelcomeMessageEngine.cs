@@ -20,11 +20,11 @@ namespace Reiati.ChillBot.Engines
         private static ILogger Logger = LogManager.GetLogger(typeof(WelcomeMessageEngine));
 
         /// <summary>
-        /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
+        /// Object pool of <see cref="GuildCheckoutResult"/>s.
         /// </summary>
-        private static ObjectPool<FileBasedGuildRepository.CheckoutResult> checkoutResultPool =
-            new ObjectPool<FileBasedGuildRepository.CheckoutResult>(
-                tFactory: () => new FileBasedGuildRepository.CheckoutResult(),
+        private static ObjectPool<GuildCheckoutResult> checkoutResultPool =
+            new ObjectPool<GuildCheckoutResult>(
+                tFactory: () => new GuildCheckoutResult(),
                 preallocate: 3);
 
         /// <summary>
@@ -33,6 +33,17 @@ namespace Reiati.ChillBot.Engines
         private static ObjectPool<StringBuilder> welcomeMessageBuilderPool = new ObjectPool<StringBuilder>(
             tFactory: () => new StringBuilder(1024),
             preallocate: 3);
+
+        /// <summary>
+        /// The repository of <see cref="Guild"/> objects.
+        /// </summary>
+        private IGuildRepository guildRepository;
+
+        public WelcomeMessageEngine(IGuildRepository guildRepository)
+        {
+            ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
+            this.guildRepository = guildRepository;
+        }
 
         /// <summary>
         /// Handle a user joined event.
@@ -44,13 +55,13 @@ namespace Reiati.ChillBot.Engines
             var checkoutResult = checkoutResultPool.Get();
             try
             {
-                checkoutResult = await FileBasedGuildRepository.Instance.WaitForNotLockedCheckout(
+                checkoutResult = await this.guildRepository.WaitForNotLockedCheckout(
                     user.Guild.Id,
                     HardCoded.Handlers.UserJoinLockedGuildTimeout,
                     checkoutResult);
                 switch (checkoutResult.Result)
                 {
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.Success:
+                    case GuildCheckoutResult.ResultType.Success:
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
                             borrowedGuild.Commit = false;
@@ -67,8 +78,8 @@ namespace Reiati.ChillBot.Engines
                         }
                     break;
 
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.DoesNotExist:
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.Locked:
+                    case GuildCheckoutResult.ResultType.DoesNotExist:
+                    case GuildCheckoutResult.ResultType.Locked:
                         // no-op: give up
                     break;
 

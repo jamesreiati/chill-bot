@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Services;
 using Reiati.ChillBot.Tools;
 using System;
@@ -80,6 +81,8 @@ namespace Reiati.ChillBot
                 })
                 .ConfigureServices(services =>
                 {
+                    services.AddSingleton<IGuildRepository>(FileBasedGuildRepository.Instance);
+
                     services.AddHostedService<ChillBotService>();
                 })
                 .UseConsoleLifetime();

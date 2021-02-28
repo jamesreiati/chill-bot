@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Data;
 using Reiati.ChillBot.EventHandlers;
 using Reiati.ChillBot.Tools;
 
@@ -58,26 +59,33 @@ namespace Reiati.ChillBot.Engines
         private readonly IReadOnlyList<IMessageHandler> guildHandlers;
 
         /// <summary>
+        /// The repository of <see cref="Guild"/> objects.
+        /// </summary>
+        private IGuildRepository guildRepository;
+
+        /// <summary>
         /// Constructs a new <see cref="CommandEngine"/>.
         /// </summary>
         /// <param name="discordClient">A client to interact with discord. May not be null.</param>
-        public CommandEngine(BaseSocketClient discordClient)
+        public CommandEngine(BaseSocketClient discordClient, IGuildRepository guildRepository)
         {
             ValidateArg.IsNotNull(discordClient, nameof(discordClient));
+            ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
             this.discordClient = discordClient;
+            this.guildRepository = guildRepository;
             this.botId = new Lazy<Snowflake>(this.GetBotId);
 
             this.dmHandlers = new List<IMessageHandler>()
             {
                 new HelpDmHandler(),
-                new LeaveOptinDmHandler(),
+                new LeaveOptinDmHandler(this.guildRepository),
             };
             this.guildHandlers = new List<IMessageHandler>()
             {
                 new HelpGuildHandler(),
-                new JoinOptinGuildHandler(),
-                new ListOptinsGuildHandler(),
-                new NewOptinGuildHandler(),
+                new JoinOptinGuildHandler(this.guildRepository),
+                new ListOptinsGuildHandler(this.guildRepository),
+                new NewOptinGuildHandler(this.guildRepository),
             };
         }
 

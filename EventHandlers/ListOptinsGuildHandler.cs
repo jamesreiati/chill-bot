@@ -24,9 +24,9 @@ namespace Reiati.ChillBot.EventHandlers
         /// <summary>
         /// Object pool of <see cref="FileBasedGuildRepository.CheckoutResult"/>s.
         /// </summary>
-        private static ObjectPool<FileBasedGuildRepository.CheckoutResult> checkoutResultPool =
-            new ObjectPool<FileBasedGuildRepository.CheckoutResult>(
-                tFactory: () => new FileBasedGuildRepository.CheckoutResult(),
+        private static ObjectPool<GuildCheckoutResult> checkoutResultPool =
+            new ObjectPool<GuildCheckoutResult>(
+                tFactory: () => new GuildCheckoutResult(),
                 preallocate: 3);
 
         /// <summary>
@@ -57,11 +57,19 @@ namespace Reiati.ChillBot.EventHandlers
             HardCoded.Handlers.DefaultRegexTimeout);
 
         /// <summary>
+        /// The repository of <see cref="Guild"/> objects.
+        /// </summary>
+        private IGuildRepository guildRepository;
+
+        /// <summary>
         /// Constructs a <see cref="ListOptinsGuildHandler"/>
         /// </summary>
-        public ListOptinsGuildHandler()
+        public ListOptinsGuildHandler(IGuildRepository guildRepository)
             : base(ListOptinsGuildHandler.matcher)
-        { }
+        {
+            ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
+            this.guildRepository = guildRepository;
+        }
 
         /// <summary>
         /// Implementers should derive from this to handle a matched message.
@@ -78,10 +86,10 @@ namespace Reiati.ChillBot.EventHandlers
             var checkoutResult = checkoutResultPool.Get();
             try
             {
-                checkoutResult = await FileBasedGuildRepository.Instance.Checkout(guildConnection.Id, checkoutResult);
+                checkoutResult = await this.guildRepository.Checkout(guildConnection.Id, checkoutResult);
                 switch (checkoutResult.Result)
                 {
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.Success:
+                    case GuildCheckoutResult.ResultType.Success:
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
                             borrowedGuild.Commit = false;
@@ -91,13 +99,13 @@ namespace Reiati.ChillBot.EventHandlers
                         }
                     break;
 
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.DoesNotExist:
+                    case GuildCheckoutResult.ResultType.DoesNotExist:
                         await message.Channel.SendMessageAsync(
                             text: "This server has not been configured for Chill Bot yet.",
                             messageReference: message.Reference);
                     break;
 
-                    case FileBasedGuildRepository.CheckoutResult.ResultType.Locked:
+                    case GuildCheckoutResult.ResultType.Locked:
                         await message.Channel.SendMessageAsync(
                             text: "Please try again.",
                             messageReference: message.Reference);

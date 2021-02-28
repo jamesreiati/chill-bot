@@ -6,9 +6,9 @@ using Reiati.ChillBot.Tools;
 namespace Reiati.ChillBot.Data
 {
     /// <summary>
-    /// Helper methods for <see cref="FileBasedGuildRepository"/>.
+    /// Helper methods for <see cref="IGuildRepository"/>.
     /// </summary>
-    public static class FileBasedGuildRepositoryExtensions
+    public static class IGuildRepositoryExtensions
     {
         /// <summary>
         /// Keeps trying to checkout a guild (with backoff) until either maxTimeout has been hit,
@@ -19,20 +19,20 @@ namespace Reiati.ChillBot.Data
         /// <param name="maxTimeout">The maximum amount of time to spend waiting for this to unlock.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The result.</returns>
-        public static async Task<FileBasedGuildRepository.CheckoutResult> WaitForNotLockedCheckout(
-            this FileBasedGuildRepository repo,
+        public static async Task<GuildCheckoutResult> WaitForNotLockedCheckout(
+            this IGuildRepository repo,
             Snowflake guildId,
             TimeSpan maxTimeout,
-            FileBasedGuildRepository.CheckoutResult recycleResult = null)
+            GuildCheckoutResult recycleResult = null)
         {
             Stopwatch timer = new Stopwatch();
-            var retVal = recycleResult ?? new FileBasedGuildRepository.CheckoutResult();
+            var retVal = recycleResult ?? new GuildCheckoutResult();
             TimeSpan nextDelay = TimeSpan.FromMilliseconds(1);
 
             timer.Start();
             retVal = await repo.Checkout(guildId, retVal);
 
-            while (retVal.Result == FileBasedGuildRepository.CheckoutResult.ResultType.Locked
+            while (retVal.Result == GuildCheckoutResult.ResultType.Locked
                 && timer.Elapsed + nextDelay < maxTimeout)
             {
                 await Task.Delay(nextDelay);
