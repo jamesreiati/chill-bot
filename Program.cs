@@ -79,9 +79,22 @@ namespace Reiati.ChillBot
                     configBuilder.AddEnvironmentVariables(prefix: HardCoded.Config.EnvironmentVariablePrefix);
                     configBuilder.AddCommandLine(args);
                 })
-                .ConfigureServices(services =>
+                .ConfigureServices((host, services) =>
                 {
-                    services.AddSingleton<IGuildRepository>(FileBasedGuildRepository.Instance);
+                    // Get the type of guild repository to use, defaulting to GuildRepositoryType.File
+                    if (!Enum.TryParse(host.Configuration[HardCoded.Config.GuildRepositoryTypeConfigKey], out GuildRepositoryType guildRepositoryType))
+                    {
+                        guildRepositoryType = GuildRepositoryType.File;
+                    }
+
+                    // Add a singleton for the guild repository
+                    switch (guildRepositoryType)
+                    {
+                        case GuildRepositoryType.File:
+                        default:
+                            services.AddSingleton<IGuildRepository>(FileBasedGuildRepository.Instance);
+                            break;
+                    }
 
                     services.AddHostedService<ChillBotService>();
                 })

@@ -23,6 +23,11 @@ namespace Reiati.ChillBot.HardCoded
         public const string ApplicationInsightsInstrumentationKeyConfigKey = "ApplicationInsights:InstrumentationKey";
 
         /// <summary>
+        /// The configuration key of the guild repository type setting.
+        /// </summary>
+        public const string GuildRepositoryTypeConfigKey = "GuildRepository:Type";
+
+        /// <summary>
         /// The path to the default config file.
         /// </summary>
         public static readonly string DefaultConfigFilePath = Path.Combine(".", "config.json");
