@@ -99,7 +99,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task LogShardConnected(DiscordSocketClient shard)
         {
-            Logger.LogInformation("Shard connected;{{shardId:{0}}}", shard.ShardId);
+            Logger.LogInformation("Shard connected;{{shardId:{shardId}}}", shard.ShardId);
             return Task.CompletedTask;
         }
 
@@ -110,7 +110,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task ForwardLogToLogging(Discord.LogMessage log)
         {
-            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {0}", log.Message ?? string.Empty);
+            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {logMessage}", log.Message ?? string.Empty);
             return Task.CompletedTask;
         }
 

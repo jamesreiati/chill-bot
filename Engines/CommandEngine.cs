@@ -193,7 +193,7 @@ namespace Reiati.ChillBot.Engines
 
                         case CanHandleResult.ResultStatus.TimedOut:
                             Logger.LogWarning(
-                                "Handler timed out;{{handlerType:{0},timeoutPeriod:{1},message:{2}}}",
+                                "Handler timed out;{{handlerType:{handlerType},timeoutPeriod:{timeoutPeriod},message:{message}}}",
                                 handler.GetType().Name,
                                 canHandle.TimeOutPeriod,
                                 message.Content);
