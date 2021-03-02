@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Engines;
 using Reiati.ChillBot.Tools;
 using System.Threading;
@@ -25,6 +26,11 @@ namespace Reiati.ChillBot.Services
         private readonly IConfiguration configuration;
 
         /// <summary>
+        /// Guild repository implementation.
+        /// </summary>
+        private readonly IGuildRepository guildRepository;
+
+        /// <summary>
         /// The client used to connect to Discord.
         /// </summary>
         private DiscordShardedClient client;
@@ -33,9 +39,11 @@ namespace Reiati.ChillBot.Services
         /// Constructs a new <see cref="ChillBotService"/>.
         /// </summary>
         /// <param name="configuration">Application configuration.</param>
-        public ChillBotService(IConfiguration configuration)
+        /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
+        public ChillBotService(IConfiguration configuration, IGuildRepository guildRepository)
         {
             this.configuration = configuration;
+            this.guildRepository = guildRepository;
         }
 
         /// <inheritdoc/>
@@ -70,8 +78,8 @@ namespace Reiati.ChillBot.Services
             client.Log += ChillBotService.ForwardLogToLogging;
             client.ShardConnected += ChillBotService.LogShardConnected;
 
-            var messageHandler = new CommandEngine(client);
-            var userJoinedHandler = new WelcomeMessageEngine();
+            var messageHandler = new CommandEngine(client, this.guildRepository);
+            var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository);
 
             client.MessageReceived += messageHandler.HandleMessageReceived;
             client.UserJoined += userJoinedHandler.HandleUserJoin;
@@ -91,7 +99,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task LogShardConnected(DiscordSocketClient shard)
         {
-            Logger.LogInformation("Shard connected;{{shardId:{0}}}", shard.ShardId);
+            Logger.LogInformation("Shard connected;{{shardId:{shardId}}}", shard.ShardId);
             return Task.CompletedTask;
         }
 
@@ -102,7 +110,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task ForwardLogToLogging(Discord.LogMessage log)
         {
-            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {0}", log.Message ?? string.Empty);
+            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {logMessage}", log.Message ?? string.Empty);
             return Task.CompletedTask;
         }
 

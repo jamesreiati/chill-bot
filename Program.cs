@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Services;
 using Reiati.ChillBot.Tools;
 using System;
@@ -78,8 +79,28 @@ namespace Reiati.ChillBot
                     configBuilder.AddEnvironmentVariables(prefix: HardCoded.Config.EnvironmentVariablePrefix);
                     configBuilder.AddCommandLine(args);
                 })
-                .ConfigureServices(services =>
+                .ConfigureServices((host, services) =>
                 {
+                    // Get the type of guild repository to use, defaulting to GuildRepositoryType.File
+                    if (!Enum.TryParse(host.Configuration[HardCoded.Config.GuildRepositoryTypeConfigKey], out GuildRepositoryType guildRepositoryType))
+                    {
+                        guildRepositoryType = GuildRepositoryType.File;
+                    }
+
+                    // Add a singleton for the guild repository
+                    switch (guildRepositoryType)
+                    {
+                        case GuildRepositoryType.File:
+                        default:
+                            services.AddSingleton<IGuildRepository>(FileBasedGuildRepository.Instance);
+                            break;
+                        case GuildRepositoryType.AzureBlob:
+                            string connectionString = host.Configuration[string.Format(HardCoded.Config.GuildRepositoryConnectionStringConfigKeyFormat, guildRepositoryType)];
+                            string container = host.Configuration[string.Format(HardCoded.Config.GuildRepositoryContainerConfigKeyFormat, guildRepositoryType)];
+                            services.AddSingleton<IGuildRepository>(new AzureBlobGuildRepository(connectionString, container));
+                            break;
+                    }
+
                     services.AddHostedService<ChillBotService>();
                 })
                 .UseConsoleLifetime();

@@ -1,5 +1,8 @@
 {
   "DiscordToken": "abcdefghijklmnopqrstuvwxyz",
+  "GuildRepository": {
+    "Type": "File"
+  },
   "ApplicationInsights": {
     "InstrumentationKey": ""
   },

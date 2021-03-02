@@ -44,6 +44,8 @@
 
 > Note: Due to the changing nature of this application, you will have to dig through the code to fill the contents with valid data. Consider starting at `./Data/FileBasedGuildRepository.cs`.
 
+> Note: If you would prefer to use Azure Blob Storage to store these files, upload the JSON file you created to an Azure Blob Storage Container and configure your bot instance to use Azure Blob Storage in the next section.
+
 # Set Up Your Machine
 
 1. Download and install the .NET Core 3.1 SDK and runtime from [Microsoft](https://dotnet.microsoft.com/download).
@@ -62,7 +64,18 @@
 
 5. (Optional) If you would like to send logs to [Application Insights](https://docs.microsoft.com/azure/azure-monitor/app/app-insights-overview), edit the `config.Local.json` file and replace the value of the `ApplicationInsights:InstrumentationKey` property with your instrumentation key. You may also control the level of logs sent to Application Insights by adding filter rules to the `Logging` section of the file as described [here](https://docs.microsoft.com/azure/azure-monitor/app/ilogger#create-filter-rules-in-configuration-with-appsettingsjson).
 
-6. Run the project.
+6. (Optional) If you would like to use [Azure Blob Storage](https://docs.microsoft.com/azure/storage/blobs/storage-blobs-introduction) as your guild repository, modify the `GuildRepository` section of the `config.Local.json` file to match the example below:
+```json
+"GuildRepository": {
+  "Type": "AzureBlob",
+  "AzureBlob": {
+    "ConnectionString": "YOUR_CONNECTION_STRING_HERE",
+    "Container": "guilds"
+  }
+}
+```
+
+7. Run the project.
 ```
 > dotnet run
 ```

@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -10,7 +9,7 @@ namespace Reiati.ChillBot.Data
     /// <summary>
     /// A repository of <see cref="Guild"/> objects to be checked out and checked in.
     /// </summary>
-    public class FileBasedGuildRepository
+    public class FileBasedGuildRepository : IGuildRepository
     {
         /// <summary>
         /// HRResult of the exception when the file is already in use.
@@ -44,9 +43,9 @@ namespace Reiati.ChillBot.Data
         /// <param name="guildId">An id representing a guild.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The borrowed guild.</returns>
-        public async Task<CheckoutResult> Checkout(Snowflake guildId, CheckoutResult recycleResult = null)
+        public async Task<GuildCheckoutResult> Checkout(Snowflake guildId, GuildCheckoutResult recycleResult = null)
         {
-            var retVal = recycleResult ?? new CheckoutResult();
+            var retVal = recycleResult ?? new GuildCheckoutResult();
 
             try
             {
@@ -60,7 +59,7 @@ namespace Reiati.ChillBot.Data
 
                 var streamReader = new StreamReader(sourceStream);
                 var jsonReader = new JsonTextReader(streamReader);
-                var guild = FileBasedGuildRepository.FromJToken(guildId, await JObject.ReadFromAsync(jsonReader));
+                var guild = GuildConverter.FromJToken(guildId, await JObject.ReadFromAsync(jsonReader));
 
                 retVal.ToSuccess(new Borrowed<Guild>(
                     isntance: guild,
@@ -85,103 +84,6 @@ namespace Reiati.ChillBot.Data
                     throw;
                 }
             }
-        }
-
-        /// <summary>
-        /// Returns a Guild from a JToken.
-        /// </summary>
-        /// <param name="guildId">An id representing the guild.</param>
-        /// <param name="data">The JToken being read in.</param>
-        /// <returns>A guild from the data in the JToken.</returns>
-        private static Guild FromJToken(Snowflake guildId, JToken data)
-        {
-            JObject dataObj = data.ToObject<JObject>();
-            var retVal = new Guild(guildId);
-
-            if (dataObj.TryGetValue(SerializationFields.OptinCreatorsRoles, out JToken optinCreatorsRolesToken))
-            {
-                if (optinCreatorsRolesToken.Type != JTokenType.Array)
-                {
-                    throw new InvalidDataException(
-                        $"{SerializationFields.OptinCreatorsRoles} is expected to be an array type.");
-                }
-
-                var optinCreatorsRolesArray = optinCreatorsRolesToken.ToObject<JArray>();
-                foreach (var roleToken in optinCreatorsRolesArray)
-                {
-                    if (roleToken.Type != JTokenType.Integer)
-                    {
-                        throw new InvalidDataException(
-                            $"Each member of {SerializationFields.OptinCreatorsRoles} is expected to be an integer type.");
-                    }
-
-                    var roleId = new Snowflake(roleToken.ToObject<UInt64>());
-                    retVal.OptinCreatorsRoles.Add(roleId);
-                }
-            }
-
-            if (dataObj.TryGetValue(SerializationFields.OptinParentCatgory, out JToken optinParentCatgory))
-            {
-                if (optinParentCatgory.Type != JTokenType.Integer)
-                {
-                    throw new InvalidDataException(
-                        $"{SerializationFields.OptinCreatorsRoles} is expected to be an integer type.");
-                }
-
-                var categoryId = new Snowflake(optinParentCatgory.ToObject<UInt64>());
-                retVal.OptinParentCategory = categoryId;
-            }
-
-            if (dataObj.TryGetValue(SerializationFields.WelcomeChannel, out JToken welcomeChannel))
-            {
-                if (welcomeChannel.Type != JTokenType.Integer)
-                {
-                    throw new InvalidDataException(
-                        $"{SerializationFields.WelcomeChannel} is expected to be an integer type.");
-                }
-
-                var welcomeChannelId = new Snowflake(welcomeChannel.ToObject<UInt64>());
-                retVal.WelcomeChannel = welcomeChannelId;
-            }
-
-            return retVal;
-        }
-
-        /// <summary>
-        /// Returns a JToken representation of a given guild.
-        /// </summary>
-        /// <param name="guild">Any guild. May not be null.</param>
-        /// <returns>A JToken representation of a given guild.</returns>
-        private static JToken ToJToken(Guild guild)
-        {
-            JObject retVal = new JObject();
-
-            if (guild.OptinCreatorsRoles.Count > 0)
-            {
-                var optinCreatorsRolesArray = new JArray();
-                foreach (var roleId in guild.OptinCreatorsRoles)
-                {
-                    optinCreatorsRolesArray.Add(new JValue(roleId.Value));
-                }
-
-                retVal.Add(SerializationFields.OptinCreatorsRoles, optinCreatorsRolesArray);
-            }
-
-            if (guild.OptinParentCategory.HasValue)
-            {
-                retVal.Add(
-                    SerializationFields.OptinParentCatgory,
-                    new JValue(guild.OptinParentCategory.GetValueOrDefault().Value));
-            }
-
-            if (guild.WelcomeChannel.HasValue)
-            {
-                retVal.Add(
-                    SerializationFields.WelcomeChannel,
-                    new JValue(guild.WelcomeChannel.GetValueOrDefault().Value));
-            }
-
-            return retVal;
         }
 
         /// <summary>
@@ -212,7 +114,7 @@ namespace Reiati.ChillBot.Data
                 // TODO: In theory, we shouldn't need to copy to a string, and then serialize to file.
                 //   Figure out how to serialize directly to file.
                 var content = JsonConvert.SerializeObject(
-                    FileBasedGuildRepository.ToJToken(guild),
+                    GuildConverter.ToJToken(guild),
                     formatting);
 
                 var writer = new StreamWriter(sourceStream);
@@ -231,85 +133,6 @@ namespace Reiati.ChillBot.Data
         private static string GetFilePath(Snowflake guildId)
         {
             return Path.Combine(FileBasedGuildRepository.GuildsRepositoryPath, guildId + ".json");
-        }
-
-        /// <summary>
-        /// Collection of field names.
-        /// </summary>
-        private static class SerializationFields
-        {
-            // Implementer's note: no need to document fields.
-
-            public const string OptinCreatorsRoles = "OptinCreatorsRoles";
-            public const string OptinParentCatgory = "OptinParentCatgory";
-            public const string WelcomeChannel = "WelcomeChannel";
-        }
-
-        /// <summary>
-        /// The result of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
-        /// </summary>
-        /// <remarks>Designed to be poolable. Mimics the structure of a discriminated union.</remarks>
-        public sealed class CheckoutResult
-        {
-            /// <summary>
-            /// The type of this result.
-            /// </summary>
-            public ResultType Result { get; private set; }
-
-            /// <summary>
-            /// [<see cref="ResultType.Success"/>] The <see cref="Data.Guild"/> associated with the given id.
-            /// </summary>
-            public Borrowed<Guild> BorrowedGuild { get; private set; }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.Success"/> type.
-            /// </summary>
-            /// <param name="borrowedGuild">The borrowed guild to return.</param>
-            public void ToSuccess(Borrowed<Guild> borrowedGuild)
-            {
-                this.Result = ResultType.Success;
-                this.BorrowedGuild = borrowedGuild;
-            }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.DoesNotExist"/> type.
-            /// </summary>
-            public void ToDoesNotExist()
-            {
-                this.Result = ResultType.DoesNotExist;
-            }
-
-            /// <summary>
-            /// Set this result to the <see cref="ResultType.Locked"/> type.
-            /// </summary>
-            public void ToLocked()
-            {
-                this.Result = ResultType.Locked;
-            }
-
-            /// <summary>
-            /// Drops all references to objects.
-            /// </summary>
-            /// <remarks>Useful call before returning to a pool.</remarks>
-            public void ClearReferences()
-            {
-                this.BorrowedGuild = null;
-            }
-
-            /// <summary>
-            /// Result type of a <see cref="FileBasedGuildRepository.Checkout(Snowflake)"/> call.
-            /// </summary>
-            public enum ResultType
-            {
-                /// <summary>A <see cref="Data.Guild"/> was successfully checked out.</summary>
-                Success,
-
-                /// <summary>No guild was associated with the given guild id.</summary>
-                DoesNotExist,
-
-                /// <summary>This guild is currently in use, try again later.</summary>
-                Locked,
-            }
         }
     }
 }
