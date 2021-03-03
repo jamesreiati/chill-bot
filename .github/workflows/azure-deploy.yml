@@ -1,0 +1,88 @@
+name: Deploy to Azure
+
+# Only run this action manually 
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    environment: Azure
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Runs a set of commands using the runners shell
+      - name: Replace placeholders in the cloud-init file
+        env:
+          CLOUD_INIT_FILE_PATH: .deploy/cloud-init.yml
+          KEY_VAULT_NAME: ${{ secrets.KEY_VAULT_NAME }}
+          DISCORD_TOKEN_SECRET_NAME: ${{ secrets.DISCORD_TOKEN_SECRET_NAME }}
+          BLOB_CONNECTION_SECRET_NAME: ${{ secrets.BLOB_CONNECTION_SECRET_NAME }}
+          APPLICATION_INSIGHTS_KEY_SECRET_NAME: ${{ secrets.APPLICATION_INSIGHTS_KEY_SECRET_NAME }}
+        run: |
+          source_zip="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_SHA.zip"
+          source_sub_directory="$(echo $GITHUB_REPOSITORY | sed -e "s|.*/||")-$GITHUB_SHA"
+
+          sed -i "s|<SOURCE_ZIP>|$source_zip|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+          sed -i "s|<SOURCE_SUB_DIRECTORY>|$source_sub_directory|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+          sed -i "s|<KEY_VAULT_NAME>|$KEY_VAULT_NAME|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+          sed -i "s|<BLOB_CONNECTION_SECRET_NAME>|$BLOB_CONNECTION_SECRET_NAME|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+          sed -i "s|<DISCORD_TOKEN_SECRET_NAME>|$DISCORD_TOKEN_SECRET_NAME|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+          sed -i "s|<APPLICATION_INSIGHTS_KEY_SECRET_NAME>|$APPLICATION_INSIGHTS_KEY_SECRET_NAME|g" $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          allow-no-subscriptions: true
+
+      - name: Deploy VMSS
+        env:
+          CLOUD_INIT_FILE_PATH: .deploy/cloud-init.yml
+          VMSS_NAME: ${{ secrets.VMSS_NAME }}
+          VMSS_RESOURCE_GROUP: ${{ secrets.VMSS_RESOURCE_GROUP }}
+          VMSS_LOCATION: ${{ secrets.VMSS_LOCATION }}
+          VMSS_USERNAME: ${{ secrets.VMSS_USERNAME }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          MANAGED_IDENTITY_ID: ${{ secrets.MANAGED_IDENTITY_ID }}
+          NSG_ID: ${{ secrets.NSG_ID }}
+          PUBLIC_IP_ID: ${{ secrets.PUBLIC_IP_ID }}
+        run: |
+          source_zip="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_SHA.zip"
+          source_sub_directory="$(echo $GITHUB_REPOSITORY | sed -e "s|.*/||")-$GITHUB_SHA"
+
+          existing_vmss_id=$(az vmss list --resource-group "$VMSS_RESOURCE_GROUP" --query "[?name == '$VMSS_NAME'].id" --output tsv)
+
+          echo "Deploying VMSS"
+          az vmss create --output none \
+            --resource-group "$VMSS_RESOURCE_GROUP" \
+            --name "$VMSS_NAME" \
+            --location "$VMSS_LOCATION" \
+            --vm-sku Standard_B1ls \
+            --storage-sku Standard_LRS \
+            --image UbuntuLTS \
+            --instance-count 1 \
+            --disable-overprovision \
+            --upgrade-policy-mode automatic \
+            --admin-username "$VMSS_USERNAME" \
+            --ssh-key-values "$SSH_PUBLIC_KEY" \
+            --assign-identity "$MANAGED_IDENTITY_ID" \
+            --nsg "$NSG_ID" \
+            --public-ip-address "$PUBLIC_IP_ID" \
+            --custom-data $GITHUB_WORKSPACE/$CLOUD_INIT_FILE_PATH
+
+          if [ -n "$existing_vmss_id" ]; then
+            echo "Updating source location on all VMSS instances"
+            az vmss list-instances --name "$VMSS_NAME" --resource-group "$VMSS_RESOURCE_GROUP" --query "[].id" --output tsv | \
+              az vmss run-command invoke --output none \
+                --ids @- \
+                --command-id RunShellScript \
+                --scripts "echo $source_zip > /home/chillbot/sourceDownloadUrl" "echo $source_sub_directory > /home/chillbot/sourceSubDirectory"
+
+            echo "Restarting all VMSS instances to pick up new source location"
+            az vmss restart --output none \
+              --resource-group "$VMSS_RESOURCE_GROUP" \
+              --name "$VMSS_NAME"
+          fi

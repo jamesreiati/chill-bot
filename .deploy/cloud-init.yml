@@ -1,0 +1,55 @@
+#cloud-config
+users:
+  - default
+  - name: chillbot
+    sudo: False
+
+packages:
+  - unzip
+
+write_files:
+  - path: /home/chillbot/sourceDownloadUrl
+    permissions: '0644'
+    content: |
+      <SOURCE_ZIP>
+
+  - path: /home/chillbot/sourceSubDirectory
+    permissions: '0644'
+    content: |
+      <SOURCE_SUB_DIRECTORY>
+
+  - path: /home/chillbot/startChillbot.sh
+    permissions: '0744'
+    content: |
+      source_download_url=$(head -n 1 /home/chillbot/sourceDownloadUrl)
+      source_sub_directory=$(head -n 1 /home/chillbot/sourceSubDirectory)
+
+      rm -rf /home/chillbot/source.zip
+      rm -rf /home/chillbot/source/*
+      wget $source_download_url -O /home/chillbot/source.zip
+      unzip /home/chillbot/source.zip -d /home/chillbot/source/
+      az login --identity --allow-no-subscriptions
+      export DOTNET_CLI_HOME=/home/chillbot
+      export CHILLBOT_GuildRepository__Type=AzureBlob
+      export CHILLBOT_GuildRepository__AzureBlob__Container=guilds
+      export CHILLBOT_GuildRepository__AzureBlob__ConnectionString=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <BLOB_CONNECTION_SECRET_NAME> --query value --out tsv)
+      export CHILLBOT_DiscordToken=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <DISCORD_TOKEN_SECRET_NAME> --query value --out tsv)
+      export CHILLBOT_ApplicationInsights__InstrumentationKey=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <APPLICATION_INSIGHTS_KEY_SECRET_NAME> --query value --out tsv)
+      cd /home/chillbot/source/$source_sub_directory
+      dotnet run --configuration Release
+
+runcmd:
+  - wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+  - dpkg -i packages-microsoft-prod.deb
+  - apt-get update
+  - apt-get install -y apt-transport-https
+  - apt-get update
+  - apt-get install -y dotnet-sdk-3.1
+  - curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+  - chown -R chillbot:chillbot /home/chillbot
+  - cd /home/chillbot
+  - sudo -H -u chillbot nohup ./startChillbot.sh &
+
+bootcmd:
+  - cd /home/chillbot
+  - sudo -H -u chillbot test -f ./startChillbot.sh && sudo -H -u chillbot nohup ./startChillbot.sh &
