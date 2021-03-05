@@ -9,7 +9,8 @@
   "Logging": {
     "LogLevel": {
       "Default": "Information",
-      "Reiati.ChillBot": "Information"
+      "Reiati.ChillBot": "Information",
+      "Discord": "Information"
     }
   }
 }
