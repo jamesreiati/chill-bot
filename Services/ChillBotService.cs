@@ -76,7 +76,7 @@ namespace Reiati.ChillBot.Services
 
             var client = new DiscordShardedClient(config);
             client.Log += ChillBotService.ForwardLogToLogging;
-            client.ShardConnected += ChillBotService.LogShardConnected;
+            client.ShardConnected += ChillBotService.ProcessShardConnected;
 
             var messageHandler = new CommandEngine(client, this.guildRepository);
             var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository);
@@ -97,9 +97,20 @@ namespace Reiati.ChillBot.Services
         /// </summary>
         /// <param name="shard">The shard which is ready.</param>
         /// <returns>When the task has completed.</returns>
-        private static Task LogShardConnected(DiscordSocketClient shard)
+        private static Task ProcessShardConnected(DiscordSocketClient shard)
         {
             Logger.LogInformation("Shard connected;{{shardId:{shardId}}}", shard.ShardId);
+
+            // Process any guild tasks that were waiting for the shard connection
+            foreach (var guild in shard.Guilds)
+            {
+                // Begin the member download for any guilds that don't have all of the members downloaded
+                if (!guild.HasAllMembers)
+                {
+                    var ignoreAwait = ChillBotService.BeginMembersDownload(guild);
+                }
+            }
+
             return Task.CompletedTask;
         }
 
