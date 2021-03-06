@@ -126,7 +126,11 @@ namespace Reiati.ChillBot.Engines
                         foreach (var channel in optinChannelCategory.Channels)
                         {
                             builder.AppendFormat("\n | {0}", channel.Name);
-                            // TODO: Add the channel description.
+
+                            if (channel is SocketTextChannel textChannel && !string.IsNullOrEmpty(textChannel.Topic))
+                            {
+                                builder.AppendFormat(" - {0}", textChannel.Topic);
+                            }
                         }
                         var exampleChannelName = optinChannelCategory.Channels.Last().Name;
                         builder.AppendFormat(

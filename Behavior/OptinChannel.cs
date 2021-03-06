@@ -202,8 +202,7 @@ namespace Reiati.ChillBot.Behavior
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
             retVal.ToSuccess(
                 optinsCategoryConnection.Channels
-                // TODO: Still need to find the channel descriptions
-                .Select(x => new Tuple<string, string>(x.Name, string.Empty)));
+                .Select(x => new Tuple<string, string>(x.Name, x is SocketTextChannel textChannel ? textChannel.Topic : string.Empty)));
             return retVal;
         }
 
