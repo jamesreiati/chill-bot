@@ -1,9 +1,9 @@
-using System;
 using System.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
 using Discord.WebSocket;
 using Reiati.ChillBot.Behavior;
+using Discord;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -44,7 +44,10 @@ namespace Reiati.ChillBot.EventHandlers
         protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
         {
             var messageChannel = message.Channel as SocketGuildChannel;
-            await message.Channel.SendMessageAsync(HelpGuildHandler.HelpMessage);
+            var messageReference = new MessageReference(message.Id, messageChannel.Id, messageChannel.Guild.Id);
+            await message.Channel.SendMessageAsync(HelpGuildHandler.HelpMessage,
+                messageReference: messageReference)
+                .ConfigureAwait(false);
         }
 
         /// <summary>

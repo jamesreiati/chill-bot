@@ -73,13 +73,14 @@ namespace Reiati.ChillBot.EventHandlers
             var messageChannel = message.Channel as SocketGuildChannel;
             var author = message.Author as SocketGuildUser;
             var guildConnection = messageChannel.Guild;
+            var messageReference = new MessageReference(message.Id, messageChannel.Id, guildConnection.Id);
             var channelName = handleCache.Groups[1].Captures[0].Value;
 
             if (!NewOptinGuildHandler.TryGetSecondMatch(handleCache, out string description))
             {
                 await message.Channel.SendMessageAsync(
                     text: "The new channel's description must be something meaningful. Ideally something that explains what it is.",
-                    messageReference: message.Reference);
+                    messageReference: messageReference);
                 return;
             }
 
@@ -104,25 +105,29 @@ namespace Reiati.ChillBot.EventHandlers
                             switch (createResult)
                             {
                                 case OptinChannel.CreateResult.Success:
-                                    await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji);
+                                    await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.CreateResult.NoPermissions:
                                     await message.Channel.SendMessageAsync(
                                         text: "You do not have permission to create opt-in channels.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.CreateResult.NoOptinCategory:
                                     await message.Channel.SendMessageAsync(
                                         text: "This server is not set up for opt-in channels.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.CreateResult.ChannelNameUsed:
                                     await message.Channel.SendMessageAsync(
                                         text: "An opt-in channel with this name already exists.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 default:
@@ -134,13 +139,15 @@ namespace Reiati.ChillBot.EventHandlers
                     case GuildCheckoutResult.ResultType.DoesNotExist:
                         await message.Channel.SendMessageAsync(
                             text: "This server has not been configured for Chill Bot yet.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     case GuildCheckoutResult.ResultType.Locked:
                         await message.Channel.SendMessageAsync(
                             text: "Please try again.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     default:
@@ -152,7 +159,8 @@ namespace Reiati.ChillBot.EventHandlers
                 Logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
-                    messageReference: message.Reference);
+                    messageReference: messageReference)
+                    .ConfigureAwait(false);
             }
             finally
             {

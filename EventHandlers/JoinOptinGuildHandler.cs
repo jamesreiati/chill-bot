@@ -74,6 +74,7 @@ namespace Reiati.ChillBot.EventHandlers
             var messageChannel = message.Channel as SocketGuildChannel;
             var author = message.Author as SocketGuildUser;
             var guildConnection = messageChannel.Guild;
+            var messageReference = new MessageReference(message.Id, messageChannel.Id, guildConnection.Id);
             var channelName = handleCache.Groups["channel"].Captures[0].Value;
 
             var checkoutResult = checkoutResultPool.Get();
@@ -96,25 +97,29 @@ namespace Reiati.ChillBot.EventHandlers
                             switch (joinResult)
                             {
                                 case OptinChannel.JoinResult.Success:
-                                    await message.AddReactionAsync(JoinOptinGuildHandler.SuccessEmoji);
+                                    await message.AddReactionAsync(JoinOptinGuildHandler.SuccessEmoji)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.JoinResult.NoSuchChannel:
                                     await message.Channel.SendMessageAsync(
                                         text: "An opt-in channel with this name does not exist.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.JoinResult.NoOptinCategory:
                                     await message.Channel.SendMessageAsync(
                                         text: "This server is not set up for opt-in channels.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 case OptinChannel.JoinResult.RoleMissing:
                                     await message.Channel.SendMessageAsync(
                                         text: "The role for this channel went missing. Talk to your server admin.",
-                                        messageReference: message.Reference);
+                                        messageReference: messageReference)
+                                        .ConfigureAwait(false);
                                 break;
 
                                 default:
@@ -126,13 +131,15 @@ namespace Reiati.ChillBot.EventHandlers
                     case GuildCheckoutResult.ResultType.DoesNotExist:
                         await message.Channel.SendMessageAsync(
                             text: "This server has not been configured for Chill Bot yet.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     case GuildCheckoutResult.ResultType.Locked:
                         await message.Channel.SendMessageAsync(
                             text: "Please try again.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     default:
@@ -144,7 +151,8 @@ namespace Reiati.ChillBot.EventHandlers
                 Logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
-                    messageReference: message.Reference);
+                    messageReference: messageReference)
+                    .ConfigureAwait(false);
             }
             finally
             {
