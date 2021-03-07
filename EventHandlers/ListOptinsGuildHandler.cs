@@ -8,6 +8,7 @@ using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 using Microsoft.Extensions.Logging;
+using Discord;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -81,8 +82,8 @@ namespace Reiati.ChillBot.EventHandlers
         protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
         {
             var messageChannel = message.Channel as SocketGuildChannel;
-            var author = message.Author as SocketGuildUser;
             var guildConnection = messageChannel.Guild;
+            var messageReference = new MessageReference(message.Id, messageChannel.Id, guildConnection.Id);
 
             var checkoutResult = checkoutResultPool.Get();
             try
@@ -103,13 +104,15 @@ namespace Reiati.ChillBot.EventHandlers
                     case GuildCheckoutResult.ResultType.DoesNotExist:
                         await message.Channel.SendMessageAsync(
                             text: "This server has not been configured for Chill Bot yet.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     case GuildCheckoutResult.ResultType.Locked:
                         await message.Channel.SendMessageAsync(
                             text: "Please try again.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     default:
@@ -121,7 +124,8 @@ namespace Reiati.ChillBot.EventHandlers
                 Logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
                     text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
-                    messageReference: message.Reference);
+                    messageReference: messageReference)
+                    .ConfigureAwait(false);
             }
             finally
             {
@@ -139,6 +143,7 @@ namespace Reiati.ChillBot.EventHandlers
         /// <returns>When listing has completed.</returns>
         private static async Task ListOptinChannels(SocketMessage message, SocketGuild guildConnection, Guild guildData)
         {
+            var messageReference = new MessageReference(message.Id, message.Channel.Id, guildConnection.Id);
             var listResult = listResultPool.Get();
             try
             {
@@ -151,20 +156,24 @@ namespace Reiati.ChillBot.EventHandlers
                         if (namesDescriptions.Count > 0)
                         {
                             await message.Channel.SendMessageAsync(
-                                ListOptinsGuildHandler.GetListingMessage(namesDescriptions));
+                                ListOptinsGuildHandler.GetListingMessage(namesDescriptions),
+                                messageReference: messageReference)
+                                .ConfigureAwait(false);
                         }
                         else
                         {
                             await message.Channel.SendMessageAsync(
                                 text: "This server deosn't have any opt-in channels yet. Try creating one with \"@Chill Bot new opt-in channel-name A description of your channel!\"",
-                                messageReference: message.Reference);
+                                messageReference: messageReference)
+                                .ConfigureAwait(false);
                         }
                     break;
 
                     case OptinChannel.ListResult.ResultType.NoOptinCategory:
                         await message.Channel.SendMessageAsync(
                             text: "This server is not set up for opt-in channels.",
-                            messageReference: message.Reference);
+                            messageReference: messageReference)
+                            .ConfigureAwait(false);
                     break;
 
                     default:

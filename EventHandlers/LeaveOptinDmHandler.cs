@@ -142,15 +142,13 @@ namespace Reiati.ChillBot.EventHandlers
 
                     case GuildCheckoutResult.ResultType.DoesNotExist:
                         await message.Channel.SendMessageAsync(
-                            text: "This server has not been configured for Chill Bot yet.",
-                            messageReference: message.Reference)
+                            text: "This server has not been configured for Chill Bot yet.")
                             .ConfigureAwait(false);
                     break;
 
                     case GuildCheckoutResult.ResultType.Locked:
                         await message.Channel.SendMessageAsync(
-                            text: "Please try again.",
-                            messageReference: message.Reference)
+                            text: "Please try again.")
                             .ConfigureAwait(false);
                     break;
 
@@ -162,8 +160,7 @@ namespace Reiati.ChillBot.EventHandlers
             {
                 Logger.LogError(e, "Request dropped - exception thrown");
                 await message.Channel.SendMessageAsync(
-                    text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.",
-                    messageReference: message.Reference)
+                    text: "Something went wrong trying to do this for you. File a bug report with Chill Bot.")
                     .ConfigureAwait(false);
             }
             finally
