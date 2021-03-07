@@ -203,8 +203,13 @@ namespace Reiati.ChillBot.EventHandlers
                 foreach (var nameDescription in namesDescriptions)
                 {
                     builder.AppendFormat("\n | **{0}**", nameDescription.name);
+
+                    if (!string.IsNullOrEmpty(nameDescription.description))
+                    {
+                        builder.AppendFormat(" - {0}", nameDescription.description);
+                    }
+
                     lastNameAdded = nameDescription.name;
-                    // TODO: Add the channel description.
                 }
                 builder.AppendFormat(
                     "\nLet me know if you're interested in any of them by sending me a message like, \"@Chill Bot join {0}\"",
