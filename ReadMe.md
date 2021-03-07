@@ -22,6 +22,8 @@ In Servers:
  - **@Chill Bot new opt-in \[channel name\] \[channel description\]** - Creates a new opt-in channel, and associated role.
  - **@Chill Bot join \[channel name\]** - Assigns that member the role to view the channel given.
  - **@Chill Bot list opt-ins** - Lists all of the opt-in channels.
+ - **@Chill Bot rename opt-in \[current channel name\] \[new channel name\]** - Changes the name of an existing opt-in channel.
+ - **@Chill Bot redescribe opt-in \[channel name\] \[channel description\]** - Changes the description of an existing opt-in channel.
  - **@Chill Bot help** - Lists all of the commands available in a server.
 
 In DMs:

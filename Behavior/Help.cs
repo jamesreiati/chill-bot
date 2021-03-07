@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Reiati.ChillBot.Behavior
@@ -21,7 +20,13 @@ namespace Reiati.ChillBot.Behavior
                 "Adds you to the opt-in channel given."),
             new CommandDetails(
                 "new opt-in *channel-name* *a helpful description of your channel*",
-                "Creates a new opt-in channel.")
+                "Creates a new opt-in channel."),
+            new CommandDetails(
+                "rename opt-in *current-channel-name* *new-channel-name*",
+                "Changes the name of an existing opt-in channel."),
+            new CommandDetails(
+                "redescribe opt-in *channel-name* *a helpful description of the channel*",
+                "Changes the description of an existing opt-in channel."),
         };
 
         /// <summary>
