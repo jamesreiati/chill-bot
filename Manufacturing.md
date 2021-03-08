@@ -106,6 +106,13 @@ If you have a single Azure subscription associated with your account, you can li
 az account set --subscription YOUR_SUBSCRIPTION_NAME_OR_ID_HERE
 ```
 
+## Register the required Azure resource providers for your subscription
+A Virtual Machine Scale Set (VMSS) will be deployed to run Chill Bot in Azure. This requires the `Microsoft.Compute` resource provider to be registered in the subscription. Run the Azure CLI command below or refer to [this page](https://docs.microsoft.com/azure/azure-resource-manager/templates/error-register-resource-provider) for more details.
+
+```
+az provider register --namespace Microsoft.Compute
+```
+
 ## Create supporting resources
 
 Create the following Azure resource in your subscription and configure them to your liking:
