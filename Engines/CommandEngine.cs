@@ -87,6 +87,8 @@ namespace Reiati.ChillBot.Engines
                 new JoinOptinGuildHandler(this.guildRepository),
                 new ListOptinsGuildHandler(this.guildRepository),
                 new NewOptinGuildHandler(this.guildRepository),
+                new RenameOptinGuildHandler(this.guildRepository),
+                new RedescribeOptinGuildHandler(this.guildRepository),
             };
         }
 

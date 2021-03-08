@@ -91,6 +91,128 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
+        /// Renames an opt-in channel in the given guild.
+        /// </summary>
+        /// <param name="guildConnection">
+        /// The connection to the guild this channel is being created in. May not be null.
+        /// </param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
+        /// <param name="currentChannelName">The current name of the channel to rename. May not be null.</param>
+        /// <param name="newChannelName">The requested new name of the channel. May not be null.</param>
+        /// <returns>The result of the request.</returns>
+        public static async Task<RenameResult> Rename(
+            SocketGuild guildConnection,
+            Guild guildData,
+            SocketGuildUser requestAuthor,
+            string currentChannelName,
+            string newChannelName)
+        {
+            ValidateArg.IsNotNullOrWhiteSpace(currentChannelName, nameof(currentChannelName));
+            ValidateArg.IsNotNullOrWhiteSpace(newChannelName, nameof(newChannelName));
+
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                return RenameResult.NoOptinCategory;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            // Check that the request author has permission to create opt-ins (which means they can rename them as well)
+            var hasPermission = PermissionsUtilities.HasPermission(
+                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                allowedRoles: guildData.OptinCreatorsRoles);
+            if (!hasPermission)
+            {
+                return RenameResult.NoPermissions;
+            }
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+
+            // Try to get the channel to rename and verify it exists
+            var currentChannel = optinsCategoryConnection.Channels
+                .Where(x => string.Compare(x.Name, currentChannelName, ignoreCase: false) == 0 && x is SocketTextChannel)
+                .Cast<SocketTextChannel>()
+                .SingleOrDefault();
+            if (currentChannel == default)
+            {
+                return RenameResult.NoSuchChannel;
+            }
+
+            // Verify the new channel name is not already in use
+            var newChannelAlreadyExists = optinsCategoryConnection.Channels
+                .Select(x => x.Name)
+                .Any(x => string.Compare(x, newChannelName, ignoreCase: false) == 0);
+            if (newChannelAlreadyExists)
+            {
+                return RenameResult.NewChannelNameUsed;
+            }
+
+            // Modify the channel name
+            await currentChannel.ModifyAsync(settings =>
+            {
+                settings.Name = newChannelName;
+            }).ConfigureAwait(false);
+
+            return RenameResult.Success;
+        }
+
+        /// <summary>
+        /// Updates the description of an opt-in channel in the given guild.
+        /// </summary>
+        /// <param name="guildConnection">
+        /// The connection to the guild this channel is being created in. May not be null.
+        /// </param>
+        /// <param name="guildData">Information about this guild. May not be null.</param>
+        /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
+        /// <param name="channelName">The current name of the channel to rename. May not be null.</param>
+        /// <param name="description">The requested description of the channel.</param>
+        /// <returns>The result of the request.</returns>
+        public static async Task<UpdateDescriptionResult> UpdateDescription(
+            SocketGuild guildConnection,
+            Guild guildData,
+            SocketGuildUser requestAuthor,
+            string channelName,
+            string description)
+        {
+            ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
+
+            if (!guildData.OptinParentCategory.HasValue)
+            {
+                return UpdateDescriptionResult.NoOptinCategory;
+            }
+            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
+
+            // Check that the request author has permission to create opt-ins (which means they can update their description as well)
+            var hasPermission = PermissionsUtilities.HasPermission(
+                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                allowedRoles: guildData.OptinCreatorsRoles);
+            if (!hasPermission)
+            {
+                return UpdateDescriptionResult.NoPermissions;
+            }
+
+            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+
+            // Try to get the channel to update and verify it exists
+            var currentChannel = optinsCategoryConnection.Channels
+                .Where(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0 && x is SocketTextChannel)
+                .Cast<SocketTextChannel>()
+                .SingleOrDefault();
+            if (currentChannel == default)
+            {
+                return UpdateDescriptionResult.NoSuchChannel;
+            }
+
+            // Modify the channel description
+            await currentChannel.ModifyAsync(settings =>
+            {
+                settings.Topic = description ?? string.Empty;
+            }).ConfigureAwait(false);
+
+            return UpdateDescriptionResult.Success;
+        }
+
+        /// <summary>
         /// Joins an optin channel.
         /// </summary>
         /// <param name="guildConnection">
@@ -233,6 +355,47 @@ namespace Reiati.ChillBot.Behavior
 
             /// <summary></summary>,
             ChannelNameUsed
+        }
+
+        /// <summary>
+        /// Result type of a <see cref="OptinChannel.Rename(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// call.
+        /// </summary>
+        public enum RenameResult
+        {
+            /// <summary>An optin channel was successfully renamed.</summary>
+            Success,
+
+            /// <summary>The server has no Opt-in channel category.</summary>
+            NoOptinCategory,
+
+            /// <summary>The request author does not have permission to rename opt-in channels.</summary>
+            NoPermissions,
+
+            /// <summary>The current channel name given does not exist as an opt-in channel (or at all.)</summary>
+            NoSuchChannel,
+
+            /// <summary>The new channel name given is already in use by another opt-in channel.</summary>,
+            NewChannelNameUsed,
+        }
+
+        /// <summary>
+        /// Result type of a <see cref="OptinChannel.UpdateDescription(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// call.
+        /// </summary>
+        public enum UpdateDescriptionResult
+        {
+            /// <summary>An optin channel's description was successfully updated.</summary>
+            Success,
+
+            /// <summary>The server has no Opt-in channel category.</summary>
+            NoOptinCategory,
+
+            /// <summary>The request author does not have permission to update the description of opt-in channels.</summary>
+            NoPermissions,
+
+            /// <summary>The channel name given does not exist as an opt-in channel (or at all.)</summary>
+            NoSuchChannel,
         }
 
         /// <summary>
