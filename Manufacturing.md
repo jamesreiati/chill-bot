@@ -137,7 +137,7 @@ Populate the following secrets in your Key Vault:
 | --------------- | ------------------------- |
 | DiscordToken    | `az keyvault secret set --vault-name ChillBotKeyVault --name DiscordToken --value "abcdefghijklmnopqrstuvwxyz"` |
 | GuildRepositoryConnectionString | `az keyvault secret set --vault-name ChillBotKeyVault --name GuildRepositoryConnectionString --value $(az storage account show-connection-string --resource-group ChillBot --name chillbotstorage --output tsv)` |
-| ApplicationInsightsInstrumentationKey (Optional) | `az keyvault secret set --vault-name ChillBotKeyVault --name GuildRepositoryConnectionString --value $(az monitor app-insights component show --resource-group ChillBot --app ChillBot --query instrumentationKey --output tsv)` |
+| ApplicationInsightsInstrumentationKey (Optional) | `az keyvault secret set --vault-name ChillBotKeyVault --name ApplicationInsightsInstrumentationKey --value $(az monitor app-insights component show --resource-group ChillBot --app ChillBot --query instrumentationKey --output tsv)` |
 
 ## Populate secrets in GitHub
 
