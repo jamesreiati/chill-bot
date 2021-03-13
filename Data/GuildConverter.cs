@@ -43,12 +43,34 @@ namespace Reiati.ChillBot.Data
                 }
             }
 
+            if (dataObj.TryGetValue(SerializationFields.OptinUpdatersRoles, out JToken optinUpdatersRolesToken))
+            {
+                if (optinUpdatersRolesToken.Type != JTokenType.Array)
+                {
+                    throw new InvalidDataException(
+                        $"{SerializationFields.OptinUpdatersRoles} is expected to be an array type.");
+                }
+
+                var optinUpdatersRolesArray = optinUpdatersRolesToken.ToObject<JArray>();
+                foreach (var roleToken in optinUpdatersRolesArray)
+                {
+                    if (roleToken.Type != JTokenType.Integer)
+                    {
+                        throw new InvalidDataException(
+                            $"Each member of {SerializationFields.OptinUpdatersRoles} is expected to be an integer type.");
+                    }
+
+                    var roleId = new Snowflake(roleToken.ToObject<UInt64>());
+                    retVal.OptinUpdatersRoles.Add(roleId);
+                }
+            }
+
             if (dataObj.TryGetValue(SerializationFields.OptinParentCatgory, out JToken optinParentCatgory))
             {
                 if (optinParentCatgory.Type != JTokenType.Integer)
                 {
                     throw new InvalidDataException(
-                        $"{SerializationFields.OptinCreatorsRoles} is expected to be an integer type.");
+                        $"{SerializationFields.OptinParentCatgory} is expected to be an integer type.");
                 }
 
                 var categoryId = new Snowflake(optinParentCatgory.ToObject<UInt64>());
@@ -90,6 +112,17 @@ namespace Reiati.ChillBot.Data
                 retVal.Add(SerializationFields.OptinCreatorsRoles, optinCreatorsRolesArray);
             }
 
+            if (guild.OptinUpdatersRoles.Count > 0)
+            {
+                var optinUpdatersRolesArray = new JArray();
+                foreach (var roleId in guild.OptinUpdatersRoles)
+                {
+                    optinUpdatersRolesArray.Add(new JValue(roleId.Value));
+                }
+
+                retVal.Add(SerializationFields.OptinUpdatersRoles, optinUpdatersRolesArray);
+            }
+
             if (guild.OptinParentCategory.HasValue)
             {
                 retVal.Add(
@@ -115,6 +148,7 @@ namespace Reiati.ChillBot.Data
             // Implementer's note: no need to document fields.
 
             public const string OptinCreatorsRoles = "OptinCreatorsRoles";
+            public const string OptinUpdatersRoles = "OptinUpdatersRoles";
             public const string OptinParentCatgory = "OptinParentCatgory";
             public const string WelcomeChannel = "WelcomeChannel";
         }
