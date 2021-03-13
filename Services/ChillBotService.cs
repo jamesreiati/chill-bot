@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using System;
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -121,8 +122,47 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task ForwardLogToLogging(Discord.LogMessage log)
         {
-            Logger.Log(log.Severity.ToLogLevel(), log.Exception, "Client log - {logMessage}", log.Message ?? string.Empty);
+            if (ChillBotService.IsDiscordReconnect(log))
+            {
+                Logger.Log(
+                    LogLevel.Information,
+                    "Client log - Client reconnect;{{exceptionType:{exceptionType}}}",
+                    log.Exception.GetType());
+            }
+            else
+            {
+                Logger.Log(
+                    log.Severity.ToLogLevel(),
+                    log.Exception,
+                    "Client log - {logMessage}",
+                    log.Message ?? string.Empty);
+            }
+
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Whether or not a discord log represents a reconnect to the Discord service.
+        /// </summary>
+        /// <param name="log">The client log.</param>
+        /// <returns>True if the log represents a reconnect, false otherwise.</returns>
+        private static bool IsDiscordReconnect(Discord.LogMessage log)
+        {
+            var exception = log.Exception;
+            if (exception is Discord.WebSocket.GatewayReconnectException)
+            {
+                return true;
+            }
+            else if (exception is System.Net.WebSockets.WebSocketException)
+            {
+                var webSocketException = (System.Net.WebSockets.WebSocketException)exception;
+                if (webSocketException.WebSocketErrorCode == System.Net.WebSockets.WebSocketError.ConnectionClosedPrematurely)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
