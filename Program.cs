@@ -82,10 +82,7 @@ namespace Reiati.ChillBot
                 .ConfigureServices((host, services) =>
                 {
                     // Get the type of guild repository to use, defaulting to GuildRepositoryType.File
-                    if (!Enum.TryParse(host.Configuration[HardCoded.Config.GuildRepositoryTypeConfigKey], out GuildRepositoryType guildRepositoryType))
-                    {
-                        guildRepositoryType = GuildRepositoryType.File;
-                    }
+                    GuildRepositoryType guildRepositoryType = host.Configuration.GetValue(HardCoded.Config.GuildRepositoryTypeConfigKey, GuildRepositoryType.File);
 
                     // Add a singleton for the guild repository
                     switch (guildRepositoryType)

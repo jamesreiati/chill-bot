@@ -33,5 +33,30 @@ namespace Reiati.ChillBot.Tools
                     return LogLevel.None;
             }
         }
+
+        /// <summary>
+        /// Converts a <see cref="LogLevel"/> to a corresponding Discord <see cref="LogSeverity"/>.
+        /// </summary>
+        /// <param name="logLevel">The log level.</param>
+        /// <returns>The <see cref="LogSeverity"/> corresponding to the <see cref="LogLevel"/>.</returns>
+        public static LogSeverity ToLogSeverity(this LogLevel logLevel)
+        {
+            switch (logLevel)
+            {
+                case LogLevel.Trace:
+                    return LogSeverity.Debug;
+                case LogLevel.Debug:
+                    return LogSeverity.Verbose;
+                case LogLevel.Information:
+                    return LogSeverity.Info;
+                case LogLevel.Warning:
+                    return LogSeverity.Warning;
+                case LogLevel.Error:
+                    return LogSeverity.Error;
+                case LogLevel.Critical:
+                default:
+                    return LogSeverity.Critical;
+            }
+        }
     }
 }
