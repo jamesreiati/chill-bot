@@ -153,9 +153,8 @@ namespace Reiati.ChillBot.Services
             {
                 return true;
             }
-            else if (exception is System.Net.WebSockets.WebSocketException)
+            else if (exception is System.Net.WebSockets.WebSocketException webSocketException)
             {
-                var webSocketException = (System.Net.WebSockets.WebSocketException)exception;
                 if (webSocketException.WebSocketErrorCode == System.Net.WebSockets.WebSocketError.ConnectionClosedPrematurely)
                 {
                     return true;
