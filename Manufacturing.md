@@ -13,6 +13,8 @@
 
 5. Use Discord's [Permissions Calculator](https://discordapi.com/permissions.html#268577872) to create a URL you can use to invite your bot to your own development server. The link provided should already set the permissions correctly for what the bot needs to operate, you just need to enter your Client ID (found in your bot settings.)
 
+>  Be sure to place the bot's role above any roles you want it to be able to manage in the server (such as channel roles created by a previous instance of Chill Bot). According to [Discord's role hierarchies](https://support.discord.com/hc/articles/214836687-Role-Management-101), "...you can only assign permissions that you have to roles under you." This means the bot will only be able to manage roles sorted below its own role.
+
 # Optional: Set Up Your Discord Client
 
 1. Under User Settings -> Appearance -> Advanced, enable "Developer Mode". This will enable new options on the context menus (right click) which help you copy IDs of things.
