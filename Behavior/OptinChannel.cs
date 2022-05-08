@@ -61,7 +61,7 @@ namespace Reiati.ChillBot.Behavior
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
             var alreadyExists = optinsCategoryConnection.Channels
                 .Select(x => x.Name)
-                .Any(x => string.Compare(x, channelName, ignoreCase: false) == 0);
+                .Any(x => string.Compare(x, channelName, ignoreCase: true) == 0);
             if (alreadyExists)
             {
                 return CreateResult.ChannelNameUsed;
@@ -130,7 +130,7 @@ namespace Reiati.ChillBot.Behavior
 
             // Try to get the channel to rename and verify it exists
             var currentChannel = optinsCategoryConnection.Channels
-                .Where(x => string.Compare(x.Name, currentChannelName, ignoreCase: false) == 0 && x is SocketTextChannel)
+                .Where(x => string.Compare(x.Name, currentChannelName, ignoreCase: true) == 0 && x is SocketTextChannel)
                 .Cast<SocketTextChannel>()
                 .SingleOrDefault();
             if (currentChannel == default)
@@ -141,7 +141,7 @@ namespace Reiati.ChillBot.Behavior
             // Verify the new channel name is not already in use
             var newChannelAlreadyExists = optinsCategoryConnection.Channels
                 .Select(x => x.Name)
-                .Any(x => string.Compare(x, newChannelName, ignoreCase: false) == 0);
+                .Any(x => string.Compare(x, newChannelName, ignoreCase: true) == 0);
             if (newChannelAlreadyExists)
             {
                 return RenameResult.NewChannelNameUsed;
@@ -195,7 +195,7 @@ namespace Reiati.ChillBot.Behavior
 
             // Try to get the channel to update and verify it exists
             var currentChannel = optinsCategoryConnection.Channels
-                .Where(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0 && x is SocketTextChannel)
+                .Where(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0 && x is SocketTextChannel)
                 .Cast<SocketTextChannel>()
                 .SingleOrDefault();
             if (currentChannel == default)
@@ -236,7 +236,7 @@ namespace Reiati.ChillBot.Behavior
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
             var requestedChannel = optinsCategoryConnection.Channels
-                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0);
+                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0);
 
             if (requestedChannel == null)
             {
@@ -281,7 +281,7 @@ namespace Reiati.ChillBot.Behavior
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
             var requestedChannel = optinsCategoryConnection.Channels
-                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: false) == 0);
+                .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0);
 
             if (requestedChannel == null)
             {
