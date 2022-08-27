@@ -125,10 +125,10 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to create opt-ins (which means they can rename them as well)
+            // Check that the request author has permission to update opt-ins
             var hasPermission = PermissionsUtilities.HasPermission(
                 userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
+                allowedRoles: guildData.OptinUpdatersRoles);
             if (!hasPermission)
             {
                 return RenameResult.NoPermissions;
@@ -198,10 +198,10 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to create opt-ins (which means they can update their description as well)
+            // Check that the request author has permission to update opt-ins
             var hasPermission = PermissionsUtilities.HasPermission(
                 userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
+                allowedRoles: guildData.OptinUpdatersRoles);
             if (!hasPermission)
             {
                 return UpdateDescriptionResult.NoPermissions;
