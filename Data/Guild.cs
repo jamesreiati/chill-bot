@@ -40,5 +40,11 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <value>Null if welcome messages are not to be sent.</value>
         public Snowflake? WelcomeChannel { get; set; }
+
+        /// <summary>
+        /// The id representing the channel under which announcement messages are to be sent.
+        /// </summary>
+        /// <value>Null if announcement messages are not to be sent.</value>
+        public Snowflake? AnnouncementChannel { get; set; }
     }
 }
