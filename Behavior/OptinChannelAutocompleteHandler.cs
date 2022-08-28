@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Reiati.ChillBot.Behavior
 {
     /// <summary>
-    /// Handles the autocompletion of opt-in channel names.
+    /// Handles the auto-completion of opt-in channel names.
     /// </summary>
     public class OptinChannelAutocompleteHandler : AutocompleteHandler
     {

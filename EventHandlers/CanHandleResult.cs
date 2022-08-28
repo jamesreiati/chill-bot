@@ -68,7 +68,7 @@ namespace Reiati.ChillBot.EventHandlers
             /// <summary>The message was able to be handled.</summary>
             Handleable,
 
-            /// <summary>The message was not abled to be handled.</summary>
+            /// <summary>The message was not able to be handled.</summary>
             Unhandleable,
 
             /// <summary>

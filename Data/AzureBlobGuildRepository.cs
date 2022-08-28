@@ -66,7 +66,7 @@ namespace Reiati.ChillBot.Data
                 string blobName = AzureBlobGuildRepository.GetBlobName(guildId);
                 var blobClient = this.blobContainerClient.GetBlockBlobClient(blobName);
 
-                // Aquire a lease on the blob
+                // Acquire a lease on the blob
                 var blobLeaseClient = blobClient.GetBlobLeaseClient();
                 var leaseResult = await blobLeaseClient.AcquireAsync(AzureBlobGuildRepository.BlobLeaseDuration).ConfigureAwait(false);
                 var lease = leaseResult.Value;

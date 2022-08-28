@@ -68,7 +68,7 @@ namespace Reiati.ChillBot.Commands
                         else
                         {
                             await this.RespondAsync(
-                                text: "This server deosn't have any opt-in channels yet. Try creating one with \"/create channel-name A description of your channel!\"")
+                                text: "This server doesn't have any opt-in channels yet. Try creating one with \"/create channel-name A description of your channel!\"")
                                 .ConfigureAwait(false);
                         }
                         break;

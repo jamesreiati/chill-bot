@@ -31,7 +31,7 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="guild">The guild whose opt-in channels should be set in the cache.</param>
         /// <param name="value">The opt-in channels to set in the cache for this guild.</param>
-        /// <param name="absoluteExpirationRelativeToNow">The expiration time in absolute terms realtive to the current time.</param>
+        /// <param name="absoluteExpirationRelativeToNow">The expiration time in absolute terms relative to the current time.</param>
         /// <returns>The value that was set.</returns>
         IEnumerable<NameDescription> Set(SocketGuild guild, IEnumerable<NameDescription> value, TimeSpan absoluteExpirationRelativeToNow);
 

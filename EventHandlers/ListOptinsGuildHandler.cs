@@ -163,7 +163,7 @@ namespace Reiati.ChillBot.EventHandlers
                         else
                         {
                             await message.Channel.SendMessageAsync(
-                                text: "This server deosn't have any opt-in channels yet. Try creating one with \"@Chill Bot new opt-in channel-name A description of your channel!\"",
+                                text: "This server doesn't have any opt-in channels yet. Try creating one with \"@Chill Bot new opt-in channel-name A description of your channel!\"",
                                 messageReference: messageReference)
                                 .ConfigureAwait(false);
                         }

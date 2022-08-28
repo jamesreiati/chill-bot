@@ -13,11 +13,11 @@ namespace Reiati.ChillBot.Behavior
     /// Responsible for managing behavior related to the opt-in channels.
     /// <para>
     /// Opt-in channels are channels which are by default hidden from a user, but are supposed to be advertised to all
-    /// users. By default, a user will not have the role associated with an opt-in channel, but any user may recieve
+    /// users. By default, a user will not have the role associated with an opt-in channel, but any user may receive
     /// the permissions to join that channel.</para>
     /// </summary>
     /// <remarks>
-    /// Opt-in channels must be made under an opt-in category. This category *must* give the bot permisison to view all
+    /// Opt-in channels must be made under an opt-in category. This category *must* give the bot permission to view all
     /// channels, and *should* deny all users from viewing all channels.
     /// </remarks>
     public class OptinChannel
@@ -92,7 +92,7 @@ namespace Reiati.ChillBot.Behavior
 
             await requestAuthor.AddRoleAsync(createdRole).ConfigureAwait(false);
 
-            // Annouce the channel creation asynchronously
+            // Announce the channel creation asynchronously
             _ = Announce.ChannelCreation(
                 guild: guildData,
                 requestAuthor: requestAuthor,
@@ -171,7 +171,7 @@ namespace Reiati.ChillBot.Behavior
                 settings.Name = newChannelName;
             }).ConfigureAwait(false);
 
-            // Annouce the channel rename asynchronously
+            // Announce the channel rename asynchronously
             _ = Announce.ChannelRename(
                 guild: guildData,
                 requestAuthor: requestAuthor,
@@ -241,14 +241,17 @@ namespace Reiati.ChillBot.Behavior
                 settings.Topic = description ?? string.Empty;
             }).ConfigureAwait(false);
 
-            // Annouce the channel description change asynchronously
-            _ = Announce.ChannelRedescribe(
-                guild: guildData,
-                requestAuthor: requestAuthor,
-                channelName: channelName,
-                oldDescription: oldDescription,
-                newDescription: description)
-                .ConfigureAwait(false);
+            if (!string.Equals(oldDescription, description))
+            {
+                // Announce the channel description change asynchronously
+                _ = Announce.ChannelRedescribe(
+                    guild: guildData,
+                    requestAuthor: requestAuthor,
+                    channelName: channelName,
+                    oldDescription: oldDescription,
+                    newDescription: description)
+                    .ConfigureAwait(false);
+            }
 
             return UpdateDescriptionResult.Success;
         }

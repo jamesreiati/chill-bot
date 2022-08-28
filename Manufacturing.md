@@ -80,7 +80,7 @@
 ```
 
 # Optional: Deploying to Azure from GitHub Actions
-> This is just one of many ways to deploy the Chill Bot service to Azure. The use of the VMSS platform and the VMSS configuration chosen were primarily motivated by keeping the cost of running the bot minimial.
+> This is just one of many ways to deploy the Chill Bot service to Azure. The use of the VMSS platform and the VMSS configuration chosen were primarily motivated by keeping the cost of running the bot minimal.
 
 ## Prerequisites
 
@@ -149,7 +149,7 @@ Populate the following secrets in your Key Vault:
 
 Store secrets and other parameters for the [Deploy to Azure](./.github/workflows/azure-deploy.yml) action using [GitHub's encrypted secrets](https://docs.github.com/actions/reference/encrypted-secrets).
 
-1. Create an environment in your respository named "Azure" by following [these instructions](https://docs.github.com/actions/reference/environments#creating-an-environment).
+1. Create an environment in your repository named "Azure" by following [these instructions](https://docs.github.com/actions/reference/environments#creating-an-environment).
 2. Populate the following secrets in your "Azure" environment by following [these instructions](https://docs.github.com/actions/reference/encrypted-secrets#creating-encrypted-secrets-for-a-repository).
 
     | Secret          | Where to obtain value     |

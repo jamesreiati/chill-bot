@@ -11,7 +11,7 @@ namespace Reiati.ChillBot.Behavior
     public class Announce
     {
         /// <summary>
-        /// Announces the creation of a channel in the given guild if an annoucement channel is configured.
+        /// Announces the creation of a channel in the given guild if an announcement channel is configured.
         /// </summary>
         /// <param name="guild">Information about the guild. May not be null.</param>
         /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
@@ -26,16 +26,22 @@ namespace Reiati.ChillBot.Behavior
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
+            string message = $"<@{requestAuthor.Id}> created a new channel named **{channelName}**";
+            if (!string.IsNullOrWhiteSpace(channelDescription))
+            {
+                message += $" with the description \"{channelDescription}\"";
+            }
+            message += $".\nLet me know if you're interested by using a command like, \"/join {channelName}\"";
+
             await Announce.SendAnnouncementMessageAsync(
                 guildConnection: requestAuthor.Guild,
                 guild: guild,
-                message: $"<@{requestAuthor.Id}> created a new channel named **{channelName}** with the description \"{channelDescription}\"\n" +
-                         $"Let me know if you're interested by using a command like, \"/join {channelName}\"")
+                message: message)
                 .ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Annoucees the rename of a channel in the given guild if an annoucement channel is configured.
+        /// Announces the rename of a channel in the given guild if an announcement channel is configured.
         /// </summary>
         /// <param name="guild">Information about the guild. May not be null.</param>
         /// <param name="requestAuthor">The author of the channel rename request. May not be null.</param>
@@ -59,7 +65,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// Announces a change to the description of a channel in the given guild if an annoucement channel is configured.
+        /// Announces a change to the description of a channel in the given guild if an announcement channel is configured.
         /// </summary>
         /// <param name="guild">Information about the guild. May not be null.</param>
         /// <param name="requestAuthor">The author of the channel redescribe request. May not be null.</param>
@@ -76,10 +82,30 @@ namespace Reiati.ChillBot.Behavior
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
+            string message = $"<@{requestAuthor.Id}> ";
+
+            if (string.IsNullOrWhiteSpace(newDescription))
+            {
+                message += $"removed the description of the **{channelName}** channel.";
+
+                if (!string.IsNullOrWhiteSpace(oldDescription))
+                {
+                    message += $" The previous description was \"{oldDescription}\"";
+                }
+            }
+            else if (string.IsNullOrWhiteSpace(oldDescription))
+            {
+                message += $"added a description to the **{channelName}** channel: \"{newDescription}\"";
+            }
+            else
+            {
+                message += $"changed the description of the **{channelName}** channel from \"{oldDescription}\" to \"{newDescription}\"";
+            }
+
             await Announce.SendAnnouncementMessageAsync(
                 guildConnection: requestAuthor.Guild,
                 guild: guild,
-                message: $"<@{requestAuthor.Id}> changed the description of the **{channelName}** channel from \"{oldDescription}\" to \"{newDescription}\"")
+                message: message)
                 .ConfigureAwait(false);
         }
 
@@ -104,7 +130,7 @@ namespace Reiati.ChillBot.Behavior
         /// <summary>
         /// Try to get the announcement channel configured for the provided guild.
         /// </summary>
-        /// <param name="guildConnection">The connection to the guild to search for the accounement channel. May not be null.</param>
+        /// <param name="guildConnection">The connection to the guild to search for the announcement channel. May not be null.</param>
         /// <param name="guild">Information about the guild. May not be null.</param>
         /// <param name="announcementChannel">The announcement channel, if one is configured and exists.</param>
         /// <returns>Whether the announcement channel was obtained for the provided guild.</returns>
