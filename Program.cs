@@ -1,7 +1,11 @@
+using Discord;
+using Discord.Interactions;
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Services;
 using Reiati.ChillBot.Tools;
@@ -81,6 +85,8 @@ namespace Reiati.ChillBot
                 })
                 .ConfigureServices((host, services) =>
                 {
+                    services.AddMemoryCache();
+
                     // Get the type of guild repository to use, defaulting to GuildRepositoryType.File
                     GuildRepositoryType guildRepositoryType = host.Configuration.GetValue(HardCoded.Config.GuildRepositoryTypeConfigKey, GuildRepositoryType.File);
 
@@ -98,9 +104,63 @@ namespace Reiati.ChillBot
                             break;
                     }
 
+                    // Add services and configuration for the Discord client
+                    var socketConfig = new DiscordSocketConfig
+                    {
+                        TotalShards = 1,
+                        LogLevel = Program.GetMinimumDiscordLogLevel(host.Configuration).ToLogSeverity(),
+                        GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers
+                    };
+
+                    services.AddSingleton(socketConfig);
+                    services.AddSingleton<DiscordShardedClient>();
+
+                    // Add services and configuration for the Discord interaction service that handles application commands.
+                    var interactionServiceConfig = new InteractionServiceConfig
+                    {
+                        LogLevel = Program.GetMinimumDiscordLogLevel(host.Configuration).ToLogSeverity(),
+                    };
+
+                    services.AddSingleton(interactionServiceConfig);
+                    services.AddSingleton<InteractionService>();
+
+                    // Add services for caching opt-in channels
+                    services.AddSingleton<IOptinChannelCache, OptinChannelMemoryCache>();
+                    services.AddSingleton<IOptinChannelCacheManager, OptinChannelCacheManager>();
+
+                    // Add the main service for Chill Bot
                     services.AddHostedService<ChillBotService>();
                 })
                 .UseConsoleLifetime();
+        }
+
+        /// <summary>
+        /// Get the minimum Discord category log level configured for any <see cref="Microsoft.Extensions.Logging"/> provider.
+        /// </summary>
+        /// <param name="configuration">Application configuration.</param>
+        /// <returns>The minimum log level configured for Discord logs.</returns>
+        private static LogLevel GetMinimumDiscordLogLevel(IConfiguration configuration)
+        {
+            bool logLevelConfigured = false;
+            LogLevel minimumDiscordLogLevel = LogLevel.None;
+            foreach (var configSetting in configuration.GetSection(nameof(Microsoft.Extensions.Logging)).AsEnumerable())
+            {
+                // Look for config settings assigning a LogLevel to a Discord category name (including subcategories of Discord)
+                // or to the default logging category.
+                if (configSetting.Key.Contains($":{nameof(LogLevel)}:{nameof(Discord)}", StringComparison.OrdinalIgnoreCase) ||
+                    configSetting.Key.EndsWith($":{nameof(LogLevel)}:Default", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check for a new minimum log level
+                    if (Enum.TryParse(configSetting.Value, out LogLevel logLevel) && logLevel < minimumDiscordLogLevel)
+                    {
+                        minimumDiscordLogLevel = logLevel;
+                        logLevelConfigured = true;
+                    }
+                }
+            }
+
+            // Return the minimum configured log level or default to LogLevel.Information if not configured.
+            return logLevelConfigured ? minimumDiscordLogLevel : LogLevel.Information;
         }
 
         /// <summary>

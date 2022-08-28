@@ -30,7 +30,7 @@ namespace Reiati.ChillBot.Behavior
                 guildConnection: requestAuthor.Guild,
                 guild: guild,
                 message: $"<@{requestAuthor.Id}> created a new channel named **{channelName}** with the description \"{channelDescription}\"\n" +
-                         $"Let me know if you're interested by sending me a message like, \"@Chill Bot join {channelName}\"")
+                         $"Let me know if you're interested by using a command like, \"/join {channelName}\"")
                 .ConfigureAwait(false);
         }
 

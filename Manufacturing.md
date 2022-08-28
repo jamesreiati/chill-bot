@@ -11,7 +11,7 @@
 
 4. Copy your API token to a safe place to use later.
 
-5. Use Discord's [Permissions Calculator](https://discordapi.com/permissions.html#268577872) to create a URL you can use to invite your bot to your own development server. The link provided should already set the permissions correctly for what the bot needs to operate, you just need to enter your Client ID (found in your bot settings.)
+5. Use Discord's [Permissions Calculator](https://discordapi.com/permissions.html#2416061520) to create a URL you can use to invite your bot to your own development server. The link provided should already set the permissions correctly for what the bot needs to operate, you just need to enter your Client ID (found in your bot settings.)
 
 >  Be sure to place the bot's role above any roles you want it to be able to manage in the server (such as channel roles created by a previous instance of Chill Bot). According to [Discord's role hierarchies](https://support.discord.com/hc/articles/214836687-Role-Management-101), "...you can only assign permissions that you have to roles under you." This means the bot will only be able to manage roles sorted below its own role.
 
@@ -33,7 +33,7 @@
 > mkdir guilds
 ```
 
-3. Create and open a new JSON file, the name of which should be the ID of your discord server. (The example below uses notepad as the editor, but any editor will do.)
+3. Create and open a new JSON file, the name of which should be the ID of your Discord server. (The example below uses notepad as the editor, but any editor will do.)
 ```
 > cd guilds
 > notepad 123456789.json
@@ -52,15 +52,12 @@
 
 1. Download and install the .NET Core 3.1 SDK and runtime from [Microsoft](https://dotnet.microsoft.com/download).
 
-2. Make a copy of `log4net.example.xml` and rename it to `log4net.config.xml`. Make any changes to the way logs are displayed here.
-```
-> cp .\log4net.example.xml .\log4net.config.xml
-```
-
-3. Make a copy of `config.json` and rename it to `config.Local.json`. Replace the value of the `DiscordToken` property in this file with your API token.
+2. Make a copy of `config.json` and rename it to `config.Local.json`. Replace the value of the `DiscordToken` property in this file with your API token.
 ```
 > cp .\config.json .\config.Local.json
 ```
+
+3. (Optional) If while testing you would like to register application commands to a test Discord server instead of publishing them globally, edit `config.Local.json` file and add a `TestGuildId` property with a value equal to the ID of your test Discord server. Globally registered commands can take up to one hour to register/update, so it is advised to register your commands to a test Discord server while developing so your changes will take effect immediately.
 
 4. (Optional) If you would like to customize the way logs are displayed, edit the `Logging` section of `config.Local.json` as described [here](https://docs.microsoft.com/dotnet/core/extensions/logging#configure-logging).
 

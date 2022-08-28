@@ -32,13 +32,15 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
         /// <param name="channelName">The requested name of the new channel. May not be null.</param>
         /// <param name="description">The requested description of the new channel.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<CreateResult> Create(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string channelName,
-            string description)
+            string description,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
@@ -50,12 +52,15 @@ namespace Reiati.ChillBot.Behavior
 
             // TODO: requestAuthor.Roles gets cached. How do I refresh this value so that it's accurate?
 
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return CreateResult.NoPermissions;
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinCreatorsRoles);
+                if (!hasPermission)
+                {
+                    return CreateResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
@@ -108,13 +113,15 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the channel rename request. May not be null.</param>
         /// <param name="currentChannelName">The current name of the channel to rename. May not be null.</param>
         /// <param name="newChannelName">The requested new name of the channel. May not be null.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<RenameResult> Rename(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string currentChannelName,
-            string newChannelName)
+            string newChannelName,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(currentChannelName, nameof(currentChannelName));
             ValidateArg.IsNotNullOrWhiteSpace(newChannelName, nameof(newChannelName));
@@ -125,13 +132,16 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to update opt-ins
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinUpdatersRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return RenameResult.NoPermissions;
+                // Check that the request author has permission to update opt-ins
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinUpdatersRoles);
+                if (!hasPermission)
+                {
+                    return RenameResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
@@ -182,13 +192,15 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the channel redescribe request. May not be null.</param>
         /// <param name="channelName">The name of the channel being described. May not be null.</param>
         /// <param name="description">The requested description of the channel.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<UpdateDescriptionResult> UpdateDescription(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string channelName,
-            string description)
+            string description,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
@@ -198,13 +210,16 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to update opt-ins
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinUpdatersRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return UpdateDescriptionResult.NoPermissions;
+                // Check that the request author has permission to update opt-ins
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinUpdatersRoles);
+                if (!hasPermission)
+                {
+                    return UpdateDescriptionResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
