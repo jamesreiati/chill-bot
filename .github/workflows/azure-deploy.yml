@@ -62,7 +62,7 @@ jobs:
             --location "$VMSS_LOCATION" \
             --vm-sku Standard_B1ls \
             --storage-sku Standard_LRS \
-            --image UbuntuLTS \
+            --image Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest \
             --instance-count 1 \
             --disable-overprovision \
             --upgrade-policy-mode automatic \
