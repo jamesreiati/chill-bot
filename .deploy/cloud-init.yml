@@ -18,25 +18,78 @@ write_files:
     content: |
       <SOURCE_SUB_DIRECTORY>
 
+  # Script to download Chill Bot source code
+  - path: /home/chillbot/downloadChillbot.sh
+    permissions: '0744'
+    content: |
+      #!/bin/sh
+      source_download_url=$(head -n 1 /home/chillbot/sourceDownloadUrl)
+
+      echo "[START] Clean up previous Chill Bot source"
+      rm -rf /home/chillbot/source.zip
+      rm -rf /home/chillbot/source/*
+      echo "[END  ] Clean up previous Chill Bot source"
+
+      echo "[START] Download Chill Bot source"
+      wget -nv $source_download_url -O /home/chillbot/source.zip
+      echo "[END  ] Download Chill Bot source"
+
+      echo "[START] Unzip Chill Bot source"
+      unzip -q /home/chillbot/source.zip -d /home/chillbot/source/
+      echo "[END  ] Unzip Chill Bot source"
+
+  # Script to build Chill Bot
+  - path: /home/chillbot/buildChillbot.sh
+    permissions: '0744'
+    content: |
+      #!/bin/sh
+      source_sub_directory=$(head -n 1 /home/chillbot/sourceSubDirectory)
+
+      echo "[START] Build Chill Bot"
+      cd /home/chillbot/source/$source_sub_directory
+      dotnet build --configuration Release --output /home/chillbot/source/$source_sub_directory/bin
+      echo "[END  ] Build Chill Bot"
+
+  # Script to prepare environment variables and run Chill Bot
   - path: /home/chillbot/startChillbot.sh
     permissions: '0744'
     content: |
-      source_download_url=$(head -n 1 /home/chillbot/sourceDownloadUrl)
+      #!/bin/sh
       source_sub_directory=$(head -n 1 /home/chillbot/sourceSubDirectory)
 
-      rm -rf /home/chillbot/source.zip
-      rm -rf /home/chillbot/source/*
-      wget $source_download_url -O /home/chillbot/source.zip
-      unzip /home/chillbot/source.zip -d /home/chillbot/source/
+      echo "[START] Login to Azure"
       az login --identity --allow-no-subscriptions
+      echo "[END  ] Login to Azure"
+
+      echo "[START] Configure environment variables"
       export DOTNET_CLI_HOME=/home/chillbot
       export CHILLBOT_GuildRepository__Type=AzureBlob
       export CHILLBOT_GuildRepository__AzureBlob__Container=guilds
       export CHILLBOT_GuildRepository__AzureBlob__ConnectionString=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <BLOB_CONNECTION_SECRET_NAME> --query value --out tsv)
       export CHILLBOT_DiscordToken=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <DISCORD_TOKEN_SECRET_NAME> --query value --out tsv)
       export CHILLBOT_ApplicationInsights__InstrumentationKey=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <APPLICATION_INSIGHTS_KEY_SECRET_NAME> --query value --out tsv)
-      cd /home/chillbot/source/$source_sub_directory
-      dotnet run --configuration Release
+      echo "[END  ] Configure environment variables"
+
+      echo "[START] Run Chill Bot"
+      cd /home/chillbot/source/$source_sub_directory/bin
+      ./ChillBot
+      echo "[END  ] Run Chill Bot"
+
+  # Unit file to run Chill Bot as a systemd user service
+  - path: /home/chillbot/.config/systemd/user/chillbot.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Chill Bot Service
+
+      [Service]
+      ExecStart=/home/chillbot/startChillbot.sh
+      WorkingDirectory=/home/chillbot
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=default.target
 
 runcmd:
   - wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -47,9 +100,16 @@ runcmd:
   - apt-get install -y dotnet-sdk-3.1
   - curl -sL https://aka.ms/InstallAzureCLIDeb | bash
   - chown -R chillbot:chillbot /home/chillbot
-  - cd /home/chillbot
-  - sudo -H -u chillbot nohup ./startChillbot.sh &
+  - sudo -H -u chillbot /home/chillbot/downloadChillbot.sh
+  - sudo -H -u chillbot /home/chillbot/buildChillbot.sh
+  - loginctl enable-linger chillbot
+  - runuser -l chillbot -c 'systemctl --user daemon-reload'
+  - runuser -l chillbot -c 'systemctl --user enable chillbot.service'
+  - runuser -l chillbot -c 'systemctl --user start chillbot.service'
 
 bootcmd:
-  - cd /home/chillbot
-  - sudo -H -u chillbot test -f ./startChillbot.sh && sudo -H -u chillbot nohup ./startChillbot.sh &
+  - sudo -H -u chillbot test -f /home/chillbot/.config/systemd/user/chillbot.service && sudo runuser -l chillbot -c 'systemctl --user stop chillbot.service'
+  - sudo pkill --signal SIGINT ChillBot
+  - sudo -H -u chillbot test -f /home/chillbot/downloadChillbot.sh && sudo -H -u chillbot /home/chillbot/downloadChillbot.sh
+  - sudo -H -u chillbot test -f /home/chillbot/buildChillbot.sh && sudo -H -u chillbot /home/chillbot/buildChillbot.sh
+  - sudo -H -u chillbot test -f /home/chillbot/.config/systemd/user/chillbot.service && sudo runuser -l chillbot -c 'systemctl --user start chillbot.service'
