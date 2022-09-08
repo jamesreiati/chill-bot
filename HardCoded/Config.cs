@@ -18,6 +18,16 @@ namespace Reiati.ChillBot.HardCoded
         public const string DiscordTokenConfigKey = "DiscordToken";
 
         /// <summary>
+        /// The configuration key of the setting that controls the opt-in channel cache life time.
+        /// </summary>
+        public const string OptinChannelCacheLifeTimeConfigKey = "OptinChannelCacheLifeTimeInMinutes";
+
+        /// <summary>
+        /// The configuration key of the setting that contains the ID of a test guild to be used for debugging.
+        /// </summary>
+        public const string TestGuildIdConfigKey = "TestGuildId";
+
+        /// <summary>
         /// The configuration key of the Application Insights instrumentation key setting.
         /// </summary>
         public const string ApplicationInsightsInstrumentationKeyConfigKey = "ApplicationInsights:InstrumentationKey";

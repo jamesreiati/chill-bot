@@ -9,7 +9,7 @@ namespace Reiati.ChillBot.Data
     public class Borrowed<T> : IDisposable
     {
         /// <summary>
-        /// Arbitrary data provided by the the lender/repository and provided back to it upon return.
+        /// Arbitrary data provided by the lender/repository and provided back to it upon return.
         /// </summary>
         private readonly object data;
 
@@ -23,7 +23,7 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="isntance">The T being borrowed.</param>
         /// <param name="data">
-        /// Arbitrary data provided by the the lender/repository and provided back to it upon return.
+        /// Arbitrary data provided by the lender/repository and provided back to it upon return.
         /// </param>
         /// <param name="onReturn">Arbitrary action invoked upon return.</param>
         public Borrowed(T isntance, object data, Action<T, object, bool> onReturn)

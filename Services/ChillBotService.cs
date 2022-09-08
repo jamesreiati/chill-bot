@@ -1,12 +1,15 @@
-﻿using Discord.WebSocket;
+﻿using Discord.Interactions;
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Engines;
+using Reiati.ChillBot.HardCoded;
 using Reiati.ChillBot.Tools;
 using System;
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,6 +36,11 @@ namespace Reiati.ChillBot.Services
         private readonly IConfiguration configuration;
 
         /// <summary>
+        /// Application service provider.
+        /// </summary>
+        private readonly IServiceProvider serviceProvider;
+
+        /// <summary>
         /// Guild repository implementation.
         /// </summary>
         private readonly IGuildRepository guildRepository;
@@ -43,13 +51,24 @@ namespace Reiati.ChillBot.Services
         private DiscordShardedClient client;
 
         /// <summary>
+        /// The service for registering Discord commands.
+        /// </summary>
+        private InteractionService interactionService;
+
+        /// <summary>
         /// Constructs a new <see cref="ChillBotService"/>.
         /// </summary>
+        /// <param name="client">The client used to connect to Discord.</param>
+        /// <param name="interactionService">The service for registering Discord commands.</param>
         /// <param name="configuration">Application configuration.</param>
+        /// <param name="serviceProvider">Application service provider.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
-        public ChillBotService(IConfiguration configuration, IGuildRepository guildRepository)
+        public ChillBotService(DiscordShardedClient client, InteractionService interactionService, IConfiguration configuration, IServiceProvider serviceProvider, IGuildRepository guildRepository)
         {
+            this.client = client;
+            this.interactionService = interactionService;
             this.configuration = configuration;
+            this.serviceProvider = serviceProvider;
             this.guildRepository = guildRepository;
         }
 
@@ -76,28 +95,41 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the client has been initialized and started.</returns>
         private async Task InitializeClient()
         {
-            var config = new DiscordSocketConfig
-            {
-                TotalShards = 1,
-                LogLevel = this.GetMinimumDiscordLogLevel().ToLogSeverity()
-            };
-
-            var client = new DiscordShardedClient(config);
-            client.Log += ChillBotService.ForwardLogToLogging;
-            client.ShardConnected += ChillBotService.ProcessShardConnected;
+            this.client.Log += ChillBotService.ForwardLogToLogging;
+            this.client.ShardConnected += ChillBotService.ProcessShardConnected;
+            this.client.ShardReady += this.ProcessShardReady;
+            this.client.InteractionCreated += this.ProcessInteractionCreated;
 
             var messageHandler = new CommandEngine(client, this.guildRepository);
             var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository);
 
-            client.MessageReceived += messageHandler.HandleMessageReceived;
-            client.UserJoined += userJoinedHandler.HandleUserJoin;
-            client.GuildAvailable += ChillBotService.BeginMembersDownload;
+            this.client.MessageReceived += messageHandler.HandleMessageReceived;
+            this.client.UserJoined += userJoinedHandler.HandleUserJoin;
+            this.client.GuildAvailable += ChillBotService.BeginMembersDownload;
 
             string token = configuration[HardCoded.Config.DiscordTokenConfigKey];
 
-            await client.LoginAsync(Discord.TokenType.Bot, token.Trim()).ConfigureAwait(false);
-            await client.StartAsync().ConfigureAwait(false);
-            this.client = client;
+            await this.client.LoginAsync(Discord.TokenType.Bot, token.Trim()).ConfigureAwait(false);
+            await this.client.StartAsync().ConfigureAwait(false);
+        }
+
+        private async Task InitializeModules()
+        {
+            await this.interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), this.serviceProvider).ConfigureAwait(false);
+
+#if DEBUG
+            string testGuildIdString = this.configuration[Config.TestGuildIdConfigKey];
+            if (ulong.TryParse(testGuildIdString, out ulong testGuildId))
+            {
+                await interactionService.RegisterCommandsToGuildAsync(testGuildId).ConfigureAwait(false);
+            }
+            else
+            {
+                await interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
+            }
+#else
+            await interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
+#endif
         }
 
         /// <summary>
@@ -107,7 +139,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private static Task ProcessShardConnected(DiscordSocketClient shard)
         {
-            Logger.LogInformation("Shard connected;{{shardId:{shardId}}}", shard.ShardId);
+            Logger.LogInformation("Shard ready;{{shardId:{shardId}}}", shard.ShardId);
 
             // Process any guild tasks that were waiting for the shard connection
             foreach (var guild in shard.Guilds)
@@ -120,6 +152,29 @@ namespace Reiati.ChillBot.Services
             }
 
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Handler for when a shard is ready.
+        /// </summary>
+        /// <param name="shard">The shard which is ready.</param>
+        /// <returns>When the task has completed.</returns>
+        private async Task ProcessShardReady(DiscordSocketClient shard)
+        {
+            Logger.LogInformation("Shard connected;{{shardId:{shardId}}}", shard.ShardId);
+
+            await InitializeModules().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Handler for when an interaction is started.
+        /// </summary>
+        /// <param name="interaction">Information about the interaction.</param>
+        /// <returns>When the task has completed.</returns>
+        private async Task ProcessInteractionCreated(SocketInteraction interaction)
+        {
+            var context = new ShardedInteractionContext(this.client, interaction);
+            await this.interactionService.ExecuteCommandAsync(context, this.serviceProvider).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -184,34 +239,6 @@ namespace Reiati.ChillBot.Services
         {
             var ignoreAwait = guild.DownloadUsersAsync();
             return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Get the minimum Discord category log level configured for any <see cref="Microsoft.Extensions.Logging"/> provider.
-        /// </summary>
-        /// <returns>The minimum log level configured for Discord logs.</returns>
-        private LogLevel GetMinimumDiscordLogLevel()
-        {
-            bool logLevelConfigured = false;
-            LogLevel minimumDiscordLogLevel = LogLevel.None;
-            foreach (var configSetting in this.configuration.GetSection(nameof(Microsoft.Extensions.Logging)).AsEnumerable())
-            {
-                // Look for config settings assigning a LogLevel to a Discord category name (including subcategories of Discord)
-                // or to the default logging category.
-                if (configSetting.Key.Contains($":{nameof(LogLevel)}:{nameof(Discord)}", StringComparison.OrdinalIgnoreCase) ||
-                    configSetting.Key.EndsWith($":{nameof(LogLevel)}:Default", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Check for a new minimum log level
-                    if (Enum.TryParse(configSetting.Value, out LogLevel logLevel) && logLevel < minimumDiscordLogLevel)
-                    {
-                        minimumDiscordLogLevel = logLevel;
-                        logLevelConfigured = true;
-                    }
-                }
-            }
-
-            // Return the minimum configured log level or default to LogLevel.Information if not configured.
-            return logLevelConfigured ? minimumDiscordLogLevel : LogLevel.Information;
         }
     }
 }

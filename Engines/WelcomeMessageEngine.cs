@@ -134,7 +134,7 @@ namespace Reiati.ChillBot.Engines
                         }
                         var exampleChannelName = optinChannelCategory.Channels.Last().Name;
                         builder.AppendFormat(
-                            "\nLet me know if you're interested in any of them by sending me a message like, \"@Chill Bot join {0}\"",
+                            "\nLet me know if you're interested in any of them by using a command like, \"/join {0}\"",
                             exampleChannelName);
                     }
                 }

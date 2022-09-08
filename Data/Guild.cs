@@ -30,6 +30,12 @@ namespace Reiati.ChillBot.Data
         public ICollection<Snowflake> OptinCreatorsRoles { get; } = new List<Snowflake>();
 
         /// <summary>
+        /// The ids representing the roles allowed to update opt-in channels.
+        /// </summary>
+        /// <value>Never null.</value>
+        public ICollection<Snowflake> OptinUpdatersRoles { get; } = new List<Snowflake>();
+
+        /// <summary>
         /// The id representing the channel category under which all opt-in channels are to be created.
         /// </summary>
         /// <value>Null if opt-ins are disabled on this server.</value>
@@ -40,5 +46,11 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <value>Null if welcome messages are not to be sent.</value>
         public Snowflake? WelcomeChannel { get; set; }
+
+        /// <summary>
+        /// The id representing the channel under which announcement messages are to be sent.
+        /// </summary>
+        /// <value>Null if announcement messages are not to be sent.</value>
+        public Snowflake? AnnouncementChannel { get; set; }
     }
 }

@@ -13,11 +13,11 @@ namespace Reiati.ChillBot.Behavior
     /// Responsible for managing behavior related to the opt-in channels.
     /// <para>
     /// Opt-in channels are channels which are by default hidden from a user, but are supposed to be advertised to all
-    /// users. By default, a user will not have the role associated with an opt-in channel, but any user may recieve
+    /// users. By default, a user will not have the role associated with an opt-in channel, but any user may receive
     /// the permissions to join that channel.</para>
     /// </summary>
     /// <remarks>
-    /// Opt-in channels must be made under an opt-in category. This category *must* give the bot permisison to view all
+    /// Opt-in channels must be made under an opt-in category. This category *must* give the bot permission to view all
     /// channels, and *should* deny all users from viewing all channels.
     /// </remarks>
     public class OptinChannel
@@ -32,13 +32,15 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
         /// <param name="channelName">The requested name of the new channel. May not be null.</param>
         /// <param name="description">The requested description of the new channel.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<CreateResult> Create(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string channelName,
-            string description)
+            string description,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
@@ -50,12 +52,15 @@ namespace Reiati.ChillBot.Behavior
 
             // TODO: requestAuthor.Roles gets cached. How do I refresh this value so that it's accurate?
 
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return CreateResult.NoPermissions;
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinCreatorsRoles);
+                if (!hasPermission)
+                {
+                    return CreateResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
@@ -87,6 +92,14 @@ namespace Reiati.ChillBot.Behavior
 
             await requestAuthor.AddRoleAsync(createdRole).ConfigureAwait(false);
 
+            // Announce the channel creation asynchronously
+            _ = Announce.ChannelCreation(
+                guild: guildData,
+                requestAuthor: requestAuthor,
+                channelName: channelName,
+                channelDescription: description)
+                .ConfigureAwait(false);
+
             return CreateResult.Success;
         }
 
@@ -94,19 +107,21 @@ namespace Reiati.ChillBot.Behavior
         /// Renames an opt-in channel in the given guild.
         /// </summary>
         /// <param name="guildConnection">
-        /// The connection to the guild this channel is being created in. May not be null.
+        /// The connection to the guild this channel is in. May not be null.
         /// </param>
         /// <param name="guildData">Information about this guild. May not be null.</param>
-        /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
+        /// <param name="requestAuthor">The author of the channel rename request. May not be null.</param>
         /// <param name="currentChannelName">The current name of the channel to rename. May not be null.</param>
         /// <param name="newChannelName">The requested new name of the channel. May not be null.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<RenameResult> Rename(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string currentChannelName,
-            string newChannelName)
+            string newChannelName,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(currentChannelName, nameof(currentChannelName));
             ValidateArg.IsNotNullOrWhiteSpace(newChannelName, nameof(newChannelName));
@@ -117,13 +132,16 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to create opt-ins (which means they can rename them as well)
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return RenameResult.NoPermissions;
+                // Check that the request author has permission to update opt-ins
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinUpdatersRoles);
+                if (!hasPermission)
+                {
+                    return RenameResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
@@ -153,6 +171,14 @@ namespace Reiati.ChillBot.Behavior
                 settings.Name = newChannelName;
             }).ConfigureAwait(false);
 
+            // Announce the channel rename asynchronously
+            _ = Announce.ChannelRename(
+                guild: guildData,
+                requestAuthor: requestAuthor,
+                oldChannelName: currentChannelName,
+                newChannelName: newChannelName)
+                .ConfigureAwait(false);
+
             return RenameResult.Success;
         }
 
@@ -160,19 +186,21 @@ namespace Reiati.ChillBot.Behavior
         /// Updates the description of an opt-in channel in the given guild.
         /// </summary>
         /// <param name="guildConnection">
-        /// The connection to the guild this channel is being created in. May not be null.
+        /// The connection to the guild this channel is in. May not be null.
         /// </param>
         /// <param name="guildData">Information about this guild. May not be null.</param>
-        /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
-        /// <param name="channelName">The current name of the channel to rename. May not be null.</param>
+        /// <param name="requestAuthor">The author of the channel redescribe request. May not be null.</param>
+        /// <param name="channelName">The name of the channel being described. May not be null.</param>
         /// <param name="description">The requested description of the channel.</param>
+        /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<UpdateDescriptionResult> UpdateDescription(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
             string channelName,
-            string description)
+            string description,
+            bool checkPermission = true)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
@@ -182,13 +210,16 @@ namespace Reiati.ChillBot.Behavior
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // Check that the request author has permission to create opt-ins (which means they can update their description as well)
-            var hasPermission = PermissionsUtilities.HasPermission(
-                userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
-                allowedRoles: guildData.OptinCreatorsRoles);
-            if (!hasPermission)
+            if (checkPermission)
             {
-                return UpdateDescriptionResult.NoPermissions;
+                // Check that the request author has permission to update opt-ins
+                var hasPermission = PermissionsUtilities.HasPermission(
+                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    allowedRoles: guildData.OptinUpdatersRoles);
+                if (!hasPermission)
+                {
+                    return UpdateDescriptionResult.NoPermissions;
+                }
             }
 
             var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
@@ -204,10 +235,23 @@ namespace Reiati.ChillBot.Behavior
             }
 
             // Modify the channel description
+            var oldDescription = currentChannel.Topic;
             await currentChannel.ModifyAsync(settings =>
             {
                 settings.Topic = description ?? string.Empty;
             }).ConfigureAwait(false);
+
+            if (!string.Equals(oldDescription, description))
+            {
+                // Announce the channel description change asynchronously
+                _ = Announce.ChannelRedescribe(
+                    guild: guildData,
+                    requestAuthor: requestAuthor,
+                    channelName: channelName,
+                    oldDescription: oldDescription,
+                    newDescription: description)
+                    .ConfigureAwait(false);
+            }
 
             return UpdateDescriptionResult.Success;
         }

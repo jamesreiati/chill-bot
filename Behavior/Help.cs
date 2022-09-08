@@ -1,3 +1,4 @@
+using Reiati.ChillBot.Commands;
 using System.Collections.Generic;
 
 namespace Reiati.ChillBot.Behavior
@@ -7,6 +8,31 @@ namespace Reiati.ChillBot.Behavior
     /// </summary>
     public class Help
     {
+        /// <summary>
+        /// All of the slash commands this bot recognizes via guild.
+        /// </summary>
+        private static CommandDetails[] guildSlashCommands = new[]
+        {
+            new CommandDetails(
+                $"/{ListOptinCommand.CommandName} {ListOptinCommand.CommandParameters}",
+                ListOptinCommand.CommandDescription),
+            new CommandDetails(
+                $"/{JoinOptinCommand.CommandName} {JoinOptinCommand.CommandParameters}",
+                JoinOptinCommand.CommandDescription),
+            new CommandDetails(
+                $"/{LeaveOptinCommand.CommandName} {LeaveOptinCommand.CommandParameters}",
+                LeaveOptinCommand.CommandDescription),
+            new CommandDetails(
+                $"/{CreateOptinCommand.CommandName} {CreateOptinCommand.CommandParameters}",
+                CreateOptinCommand.CommandDescription),
+            new CommandDetails(
+                $"/{RenameOptinCommand.CommandName} {RenameOptinCommand.CommandParameters}",
+                RenameOptinCommand.CommandDescription),
+            new CommandDetails(
+                $"/{RedescribeOptinCommand.CommandName} {RedescribeOptinCommand.CommandParameters}",
+                RedescribeOptinCommand.CommandDescription),
+        };
+
         /// <summary>
         /// All of the commands this bot recognizes via guild.
         /// </summary>
@@ -38,6 +64,11 @@ namespace Reiati.ChillBot.Behavior
                 "leave opt-in *channel-name*",
                 "Removes you from the channel given.")
         };
+
+        /// <summary>
+        /// All of the slash commands this bot recognizes via guild.
+        /// </summary>
+        public static IReadOnlyCollection<CommandDetails> GuildSlashCommands => guildSlashCommands;
 
         /// <summary>
         /// All of the commands this bot recognizes via guild.

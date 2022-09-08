@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Reiati.ChillBot.EventHandlers
 {
     /// <summary>
-    /// Responsible for handling messages in a guild, attempting to list opt-in channels.
+    /// Responsible for handling messages in a guild, attempting to leave opt-in channels.
     /// </summary>
     public class LeaveOptinDmHandler : AbstractRegexHandler
     {
