@@ -84,6 +84,7 @@ write_files:
       export CHILLBOT_GuildRepository__AzureBlob__Container=guilds
       export CHILLBOT_GuildRepository__AzureBlob__ConnectionString=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <BLOB_CONNECTION_SECRET_NAME> --query value --out tsv)
       export CHILLBOT_DiscordToken=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <DISCORD_TOKEN_SECRET_NAME> --query value --out tsv)
+      export CHILLBOT_ApplicationInsights__ConnectionString=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <APPLICATION_INSIGHTS_CONNECTION_SECRET_NAME> --query value --out tsv)
       export CHILLBOT_ApplicationInsights__InstrumentationKey=$(az keyvault secret show --vault-name <KEY_VAULT_NAME> --name <APPLICATION_INSIGHTS_KEY_SECRET_NAME> --query value --out tsv)
       echo "[END  ] Configure environment variables"
 

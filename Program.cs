@@ -1,6 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -69,11 +70,26 @@ namespace Reiati.ChillBot
                 {
                     Program.ConfigureBaseLogging(logging);
 
-                    // Configure Application Insights if an instrumentation key is provided
+                    // Configure Application Insights if a connection string or instrumentation key is provided
+                    string connectionString = host.Configuration[HardCoded.Config.ApplicationInsightsConnectionStringConfigKey];
                     string instrumentationKey = host.Configuration[HardCoded.Config.ApplicationInsightsInstrumentationKeyConfigKey];
-                    if (!string.IsNullOrEmpty(instrumentationKey))
+                    if (!string.IsNullOrEmpty(connectionString) || !string.IsNullOrEmpty(instrumentationKey))
                     {
-                        logging.AddApplicationInsights(instrumentationKey);
+                        logging.AddApplicationInsights(config =>
+                        {
+                            // Prefer using the connection string if provided since the instrumentation key is obsolete.
+                            // See https://github.com/microsoft/ApplicationInsights-dotnet/issues/2560 for more details.
+                            if (!string.IsNullOrEmpty(connectionString))
+                            {
+                                config.ConnectionString = connectionString;
+                            }
+                            else if (!string.IsNullOrEmpty(instrumentationKey))
+                            {
+                                config.InstrumentationKey = instrumentationKey;
+                            }
+                        }, options =>
+                        {
+                        });
                     }
                 })
                 .ConfigureAppConfiguration(configBuilder =>
