@@ -13,24 +13,12 @@ namespace Reiati.ChillBot.Behavior
         /// </summary>
         private static CommandDetails[] guildSlashCommands = new[]
         {
-            new CommandDetails(
-                $"/{ListOptinCommand.CommandName} {ListOptinCommand.CommandParameters}",
-                ListOptinCommand.CommandDescription),
-            new CommandDetails(
-                $"/{JoinOptinCommand.CommandName} {JoinOptinCommand.CommandParameters}",
-                JoinOptinCommand.CommandDescription),
-            new CommandDetails(
-                $"/{LeaveOptinCommand.CommandName} {LeaveOptinCommand.CommandParameters}",
-                LeaveOptinCommand.CommandDescription),
-            new CommandDetails(
-                $"/{CreateOptinCommand.CommandName} {CreateOptinCommand.CommandParameters}",
-                CreateOptinCommand.CommandDescription),
-            new CommandDetails(
-                $"/{RenameOptinCommand.CommandName} {RenameOptinCommand.CommandParameters}",
-                RenameOptinCommand.CommandDescription),
-            new CommandDetails(
-                $"/{RedescribeOptinCommand.CommandName} {RedescribeOptinCommand.CommandParameters}",
-                RedescribeOptinCommand.CommandDescription),
+            new CommandDetails(ListOptinCommand.CommandUsage, ListOptinCommand.CommandDescription),
+            new CommandDetails(JoinOptinCommand.CommandUsage, JoinOptinCommand.CommandDescription),
+            new CommandDetails(LeaveOptinCommand.CommandUsage, LeaveOptinCommand.CommandDescription),
+            new CommandDetails(CreateOptinCommand.CommandUsage, CreateOptinCommand.CommandDescription),
+            new CommandDetails(RenameOptinCommand.CommandUsage, RenameOptinCommand.CommandDescription),
+            new CommandDetails(RedescribeOptinCommand.CommandUsage, RedescribeOptinCommand.CommandDescription),
         };
 
         /// <summary>

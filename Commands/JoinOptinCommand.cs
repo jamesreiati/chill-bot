@@ -17,6 +17,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "join";
         public const string CommandDescription = "Adds you to the opt-in channel given.";
         public const string CommandParameters = "*channel-name*";
+        public const string CommandUsage = $"/{JoinOptinCommand.CommandName} {JoinOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.
