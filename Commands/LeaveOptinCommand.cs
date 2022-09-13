@@ -18,6 +18,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "leave";
         public const string CommandDescription = "Removes you from the channel given.";
         public const string CommandParameters = "*channel-name*";
+        public const string CommandUsage = $"/{LeaveOptinCommand.CommandName} {LeaveOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.

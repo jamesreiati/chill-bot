@@ -19,6 +19,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "create";
         public const string CommandDescription = "Creates a new opt-in channel.";
         public const string CommandParameters = "*channel-name* *a helpful description of your channel*";
+        public const string CommandUsage = $"/{CreateOptinCommand.CommandName} {CreateOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.

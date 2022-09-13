@@ -18,6 +18,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "redescribe";
         public const string CommandDescription = "Changes the description of an existing opt-in channel.";
         public const string CommandParameters = "*channel-name* *a helpful description of the channel*";
+        public const string CommandUsage = $"/{RedescribeOptinCommand.CommandName} {RedescribeOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.

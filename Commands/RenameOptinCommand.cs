@@ -18,6 +18,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "rename";
         public const string CommandDescription = "Changes the name of an existing opt-in channel.";
         public const string CommandParameters = "*current-channel-name* *new-channel-name*";
+        public const string CommandUsage = $"/{RenameOptinCommand.CommandName} {RenameOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.

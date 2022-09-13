@@ -17,6 +17,7 @@ namespace Reiati.ChillBot.Commands
         public const string CommandName = "list";
         public const string CommandDescription = "Lists all of the opt-in channels on this server.";
         public const string CommandParameters = "";
+        public const string CommandUsage = $"/{ListOptinCommand.CommandName} {ListOptinCommand.CommandParameters}";
 
         /// <summary>
         /// A logger.
