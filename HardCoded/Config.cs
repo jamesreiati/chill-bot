@@ -28,6 +28,11 @@ namespace Reiati.ChillBot.HardCoded
         public const string TestGuildIdConfigKey = "TestGuildId";
 
         /// <summary>
+        /// The configuration key of the Application Insights connection string setting.
+        /// </summary>
+        public const string ApplicationInsightsConnectionStringConfigKey = "ApplicationInsights:ConnectionString";
+
+        /// <summary>
         /// The configuration key of the Application Insights instrumentation key setting.
         /// </summary>
         public const string ApplicationInsightsInstrumentationKeyConfigKey = "ApplicationInsights:InstrumentationKey";

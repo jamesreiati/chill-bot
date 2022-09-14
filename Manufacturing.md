@@ -143,7 +143,8 @@ Populate the following secrets in your Key Vault:
 | --------------- | ------------------------- |
 | DiscordToken    | `az keyvault secret set --vault-name ChillBotKeyVault --name DiscordToken --value "abcdefghijklmnopqrstuvwxyz"` |
 | GuildRepositoryConnectionString | `az keyvault secret set --vault-name ChillBotKeyVault --name GuildRepositoryConnectionString --value $(az storage account show-connection-string --resource-group ChillBot --name chillbotstorage --output tsv)` |
-| ApplicationInsightsInstrumentationKey (Optional) | `az keyvault secret set --vault-name ChillBotKeyVault --name ApplicationInsightsInstrumentationKey --value $(az monitor app-insights component show --resource-group ChillBot --app ChillBot --query instrumentationKey --output tsv)` |
+| ApplicationInsightsConnectionString (Optional) | `az keyvault secret set --vault-name ChillBotKeyVault --name ApplicationInsightsConnectionString --value $(az monitor app-insights component show --resource-group ChillBot --app ChillBot --query connectionString --output tsv)` |
+| ApplicationInsightsInstrumentationKey ([Deprecated](https://github.com/microsoft/ApplicationInsights-dotnet/issues/2560)) | `az keyvault secret set --vault-name ChillBotKeyVault --name ApplicationInsightsInstrumentationKey --value $(az monitor app-insights component show --resource-group ChillBot --app ChillBot --query instrumentationKey --output tsv)` |
 
 ## Populate secrets in GitHub
 
@@ -154,7 +155,7 @@ Store secrets and other parameters for the [Deploy to Azure](./.github/workflows
 
     | Secret          | Where to obtain value     |
     | --------------- | ------------------------- |
-    | `APPLICATION_INSIGHTS_KEY_SECRET_NAME` | The name of your Application Insight secret in Key Vault. If you followed the secret population above, this will be `ApplicationInsightsInstrumentationKey` |
+    | `APPLICATION_INSIGHTS_CONNECTION_SECRET_NAME` | The name of your Application Insights connection string secret in Key Vault. If you followed the secret population above, this will be `ApplicationInsightsConnectionString` |
     | `AZURE_CREDENTIALS` | Follow [these instructions](https://github.com/marketplace/actions/azure-login#configure-deployment-credentials). For the `--scope` parameter, provide the ID of the resource group you created above (or a separate resource group if prefer to keep the compute separate from the other resources) |
     | `BLOB_CONNECTION_SECRET_NAME` | The name of your guild repository secret in Key Vault. If you followed the secret population above, this will be `GuildRepositoryConnectionString` |
     | `DISCORD_TOKEN_SECRET_NAME` | The name of your Discord token secret in Key Vault. If you followed the secret population above, this will be `DiscordToken` |
@@ -167,6 +168,7 @@ Store secrets and other parameters for the [Deploy to Azure](./.github/workflows
     | `VMSS_NAME` | The name of the VMSS to deploy (e.g., `ChillBotDeployment`). |
     | `VMSS_RESOURCE_GROUP` | The name of the resource group you provided as the `--scope` when generating your `AZURE_CREDENTIALS` secret. If you used the resource group created above, this would be `ChillBot`. |
     | `VMSS_USERNAME` | The username you wish to use to log in to your VMSS via SSH, should you choose to do so. |
+    | `APPLICATION_INSIGHTS_KEY_SECRET_NAME` | ([Deprecated](https://github.com/microsoft/ApplicationInsights-dotnet/issues/2560)) The name of your Application Insights secret in Key Vault. If you followed the secret population above, this will be `ApplicationInsightsInstrumentationKey` |
 
 ## Deploy to Azure
 

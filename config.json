@@ -5,6 +5,7 @@
     "Type": "File"
   },
   "ApplicationInsights": {
+    "ConnectionString": "",
     "InstrumentationKey": ""
   },
   "Logging": {
