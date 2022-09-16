@@ -125,7 +125,7 @@ namespace Reiati.ChillBot
                     {
                         TotalShards = 1,
                         LogLevel = Program.GetMinimumDiscordLogLevel(host.Configuration).ToLogSeverity(),
-                        GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers
+                        GatewayIntents = (GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers) ^ (GatewayIntents.GuildScheduledEvents | GatewayIntents.GuildInvites)
                     };
 
                     services.AddSingleton(socketConfig);
