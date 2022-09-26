@@ -46,6 +46,11 @@ namespace Reiati.ChillBot.Services
         private readonly IGuildRepository guildRepository;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private readonly ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// The client used to connect to Discord.
         /// </summary>
         private DiscordShardedClient client;
@@ -63,13 +68,15 @@ namespace Reiati.ChillBot.Services
         /// <param name="configuration">Application configuration.</param>
         /// <param name="serviceProvider">Application service provider.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
-        public ChillBotService(DiscordShardedClient client, InteractionService interactionService, IConfiguration configuration, IServiceProvider serviceProvider, IGuildRepository guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public ChillBotService(DiscordShardedClient client, InteractionService interactionService, IConfiguration configuration, IServiceProvider serviceProvider, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
         {
             this.client = client;
             this.interactionService = interactionService;
             this.configuration = configuration;
             this.serviceProvider = serviceProvider;
             this.guildRepository = guildRepository;
+            this.slashCommandCache = slashCommandCache;
         }
 
         /// <inheritdoc/>
@@ -87,6 +94,12 @@ namespace Reiati.ChillBot.Services
                 this.client.Dispose();
                 this.client = null;
             }
+
+            if (this.interactionService != null)
+            {
+                this.interactionService.Dispose();
+                this.interactionService = null;
+            }
         }
 
         /// <summary>
@@ -100,8 +113,8 @@ namespace Reiati.ChillBot.Services
             this.client.ShardReady += this.ProcessShardReady;
             this.client.InteractionCreated += this.ProcessInteractionCreated;
 
-            var messageHandler = new CommandEngine(client, this.guildRepository);
-            var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository);
+            var messageHandler = new CommandEngine(client, this.guildRepository, this.slashCommandCache);
+            var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository, this.slashCommandCache);
 
             this.client.MessageReceived += messageHandler.HandleMessageReceived;
             this.client.UserJoined += userJoinedHandler.HandleUserJoin;
@@ -121,14 +134,14 @@ namespace Reiati.ChillBot.Services
             string testGuildIdString = this.configuration[Config.TestGuildIdConfigKey];
             if (ulong.TryParse(testGuildIdString, out ulong testGuildId))
             {
-                await interactionService.RegisterCommandsToGuildAsync(testGuildId).ConfigureAwait(false);
+                await this.interactionService.RegisterCommandsToGuildAsync(testGuildId).ConfigureAwait(false);
             }
             else
             {
-                await interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
+                await this.interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
             }
 #else
-            await interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
+            await this.interactionService.RegisterCommandsGloballyAsync().ConfigureAwait(false);
 #endif
         }
 

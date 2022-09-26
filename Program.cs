@@ -143,6 +143,10 @@ namespace Reiati.ChillBot
                     services.AddSingleton<IOptinChannelCache, OptinChannelMemoryCache>();
                     services.AddSingleton<IOptinChannelCacheManager, OptinChannelCacheManager>();
 
+                    // Add services for caching slash commands
+                    services.AddSingleton<ISlashCommandCache, SlashCommandMemoryCache>();
+                    services.AddSingleton<ISlashCommandCacheManager, SlashCommandCacheManager>();
+
                     // Add the main service for Chill Bot
                     services.AddHostedService<ChillBotService>();
                 })

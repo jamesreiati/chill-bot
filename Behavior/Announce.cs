@@ -1,4 +1,5 @@
 ﻿using Discord.WebSocket;
+using Reiati.ChillBot.Commands;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 using System.Threading.Tasks;
@@ -17,21 +18,28 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the channel create request. May not be null.</param>
         /// <param name="channelName">The name of the new channel. May not be null.</param>
         /// <param name="channelDescription">The description of the new channel.</param>
+        /// <param name="joinCommandLink">An optional link to the join command that can be used to join the new channel.</param>
         /// <returns>A task indicating completion.</returns>
         public static async Task ChannelCreation(
             Guild guild,
             SocketGuildUser requestAuthor,
             string channelName,
-            string channelDescription)
+            string channelDescription,
+            string joinCommandLink = null)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
+
+            if (string.IsNullOrEmpty(joinCommandLink))
+            {
+                joinCommandLink = "/" + JoinOptinCommand.CommandName;
+            }
 
             string message = $"<@{requestAuthor.Id}> created a new channel named **{channelName}**";
             if (!string.IsNullOrWhiteSpace(channelDescription))
             {
                 message += $" with the description \"{channelDescription}\"";
             }
-            message += $".\nLet me know if you're interested by using a command like, \"/join {channelName}\"";
+            message += $".\nLet me know if you're interested by using a command like, \"{joinCommandLink} {channelName}\"";
 
             await Announce.SendAnnouncementMessageAsync(
                 guildConnection: requestAuthor.Guild,
