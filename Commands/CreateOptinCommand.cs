@@ -32,18 +32,27 @@ namespace Reiati.ChillBot.Commands
         private IOptinChannelCacheManager optinChannelCache;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// Constructs a <see cref="CreateOptinCommand"/>
         /// </summary>
         /// <param name="logger">A logger.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         /// <param name="optinChannelCache">The cache manager to use for opt-in channels.</param>
-        public CreateOptinCommand(ILogger<CreateOptinCommand> logger, IGuildRepository guildRepository, IOptinChannelCacheManager optinChannelCache) : base(guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public CreateOptinCommand(ILogger<CreateOptinCommand> logger, IGuildRepository guildRepository, IOptinChannelCacheManager optinChannelCache, ISlashCommandCacheManager slashCommandCache) : base(guildRepository)
         {
             ValidateArg.IsNotNull(logger, nameof(logger));
             this.logger = logger;
 
             ValidateArg.IsNotNull(optinChannelCache, nameof(optinChannelCache));
             this.optinChannelCache = optinChannelCache;
+
+            ValidateArg.IsNotNull(slashCommandCache, nameof(slashCommandCache));
+            this.slashCommandCache = slashCommandCache;
         }
 
         /// <summary>
@@ -63,12 +72,15 @@ namespace Reiati.ChillBot.Commands
             var checkoutResult = checkoutResultPool.Get();
             try
             {
-                checkoutResult = await this.guildRepository.Checkout(this.Context.Guild.Id, checkoutResult);
+                checkoutResult = await this.guildRepository.Checkout(this.Context.Guild.Id, checkoutResult).ConfigureAwait(false);
                 switch (checkoutResult.Result)
                 {
                     case GuildCheckoutResult.ResultType.Success:
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
+                            // Get the join slash command information
+                            SlashCommand joinSlashCommand = await this.slashCommandCache.GetSlashCommandInfoAsync<JoinOptinCommand>(this.Context.Guild, nameof(JoinOptinCommand.JoinSlashCommand)).ConfigureAwait(false);
+
                             var guildData = borrowedGuild.Instance;
                             var createResult = await OptinChannel.Create(
                                 guildConnection: this.Context.Guild,
@@ -76,7 +88,9 @@ namespace Reiati.ChillBot.Commands
                                 requestAuthor: this.Context.User as SocketGuildUser,
                                 channelName: channelName,
                                 description: channelDescription,
-                                checkPermission: false); // Slash commands can have permissions configured by the server admin, so do not perform our own permission check
+                                checkPermission: false,  // Slash commands can have permissions configured by the server admin, so do not perform our own permission check
+                                joinCommandLink: joinSlashCommand?.CommandLinkText)
+                                .ConfigureAwait(false);
                             borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
 
                             switch (createResult)

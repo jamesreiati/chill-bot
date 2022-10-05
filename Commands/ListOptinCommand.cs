@@ -30,18 +30,27 @@ namespace Reiati.ChillBot.Commands
         private IOptinChannelCacheManager optinChannelCache;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// Constructs a <see cref="ListOptinCommand"/>
         /// </summary>
         /// <param name="logger">A logger.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         /// <param name="optinChannelCache">The cache manager to use for opt-in channels.</param>
-        public ListOptinCommand(ILogger<ListOptinCommand> logger, IGuildRepository guildRepository, IOptinChannelCacheManager optinChannelCache) : base(guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public ListOptinCommand(ILogger<ListOptinCommand> logger, IGuildRepository guildRepository, IOptinChannelCacheManager optinChannelCache, ISlashCommandCacheManager slashCommandCache) : base(guildRepository)
         {
             ValidateArg.IsNotNull(logger, nameof(logger));
             this.logger = logger;
 
             ValidateArg.IsNotNull(optinChannelCache, nameof(optinChannelCache));
             this.optinChannelCache = optinChannelCache;
+
+            ValidateArg.IsNotNull(slashCommandCache, nameof(slashCommandCache));
+            this.slashCommandCache = slashCommandCache;
         }
 
         /// <summary>
@@ -55,7 +64,7 @@ namespace Reiati.ChillBot.Commands
             var optinChannelCacheResult = optinChannelCacheResultPool.Get();
             try
             {
-                optinChannelCacheResult = await this.optinChannelCache.GetChannels(this.Context.Guild, optinChannelCacheResult);
+                optinChannelCacheResult = await this.optinChannelCache.GetChannels(this.Context.Guild, optinChannelCacheResult).ConfigureAwait(false);
                 switch (optinChannelCacheResult.Result)
                 {
                     case OptinChannelCacheResult.ResultType.Success:
@@ -63,7 +72,7 @@ namespace Reiati.ChillBot.Commands
                         if (namesDescriptions.Count > 0)
                         {
                             await this.RespondAsync(
-                                ListOptinCommand.GetListingMessage(namesDescriptions))
+                                await this.GetListingMessage(namesDescriptions).ConfigureAwait(false))
                                 .ConfigureAwait(false);
                         }
                         else
@@ -115,7 +124,7 @@ namespace Reiati.ChillBot.Commands
         /// </summary>
         /// <param name="namesDescriptions">Some set of channel names and descriptions.</param>
         /// <returns>The string which describes them all.</returns>
-        private static string GetListingMessage(IEnumerable<OptinChannel.ListResult.NameDescription> namesDescriptions)
+        private async Task<string> GetListingMessage(IEnumerable<OptinChannel.ListResult.NameDescription> namesDescriptions)
         {
             var builder = welcomeMessageBuilderPool.Get();
             builder.Clear();
@@ -134,9 +143,22 @@ namespace Reiati.ChillBot.Commands
 
                     lastNameAdded = nameDescription.name;
                 }
-                builder.AppendFormat(
-                    "\nLet me know if you're interested in any of them by using a command like, \"/join {0}\"",
-                    lastNameAdded);
+                builder.Append("\nLet me know if you're interested in any of them by using a command like, \"");
+
+                // Get the join slash command information
+                SlashCommand joinSlashCommand = await this.slashCommandCache.GetSlashCommandInfoAsync<JoinOptinCommand>(this.Context.Guild, nameof(JoinOptinCommand.JoinSlashCommand)).ConfigureAwait(false);
+                if (joinSlashCommand != null)
+                {
+                    builder.Append(joinSlashCommand.CommandLinkText);
+                }
+                else
+                {
+                    builder.Append('/');
+                    builder.Append(JoinOptinCommand.CommandName);
+                }
+
+                builder.AppendFormat(" {0}\"", lastNameAdded);
+
                 return builder.ToString();
             }
             finally

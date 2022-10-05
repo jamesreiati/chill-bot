@@ -33,6 +33,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="channelName">The requested name of the new channel. May not be null.</param>
         /// <param name="description">The requested description of the new channel.</param>
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
+        /// <param name="joinCommandLink">An optional link to the join command that can be used to join the new channel.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<CreateResult> Create(
             SocketGuild guildConnection,
@@ -40,7 +41,8 @@ namespace Reiati.ChillBot.Behavior
             SocketGuildUser requestAuthor,
             string channelName,
             string description,
-            bool checkPermission = true)
+            bool checkPermission = true,
+            string joinCommandLink = null)
         {
             ValidateArg.IsNotNullOrWhiteSpace(channelName, nameof(channelName));
 
@@ -97,7 +99,8 @@ namespace Reiati.ChillBot.Behavior
                 guild: guildData,
                 requestAuthor: requestAuthor,
                 channelName: channelName,
-                channelDescription: description)
+                channelDescription: description,
+                joinCommandLink: joinCommandLink)
                 .ConfigureAwait(false);
 
             return CreateResult.Success;

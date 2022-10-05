@@ -64,16 +64,24 @@ namespace Reiati.ChillBot.Engines
         private IGuildRepository guildRepository;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// Constructs a new <see cref="CommandEngine"/>.
         /// </summary>
         /// <param name="discordClient">A client to interact with discord. May not be null.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
-        public CommandEngine(BaseSocketClient discordClient, IGuildRepository guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public CommandEngine(BaseSocketClient discordClient, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
         {
             ValidateArg.IsNotNull(discordClient, nameof(discordClient));
             ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
+            ValidateArg.IsNotNull(slashCommandCache, nameof(slashCommandCache));
             this.discordClient = discordClient;
             this.guildRepository = guildRepository;
+            this.slashCommandCache = slashCommandCache;
             this.botId = new Lazy<Snowflake>(this.GetBotId);
 
             this.dmHandlers = new List<IMessageHandler>()
@@ -86,7 +94,7 @@ namespace Reiati.ChillBot.Engines
                 new HelpGuildHandler(),
                 new JoinOptinGuildHandler(this.guildRepository),
                 new ListOptinsGuildHandler(this.guildRepository),
-                new NewOptinGuildHandler(this.guildRepository),
+                new NewOptinGuildHandler(this.guildRepository, this.slashCommandCache),
                 new RenameOptinGuildHandler(this.guildRepository),
                 new RedescribeOptinGuildHandler(this.guildRepository),
             };

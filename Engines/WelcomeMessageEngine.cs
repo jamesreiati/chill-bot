@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Commands;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 
@@ -40,13 +41,22 @@ namespace Reiati.ChillBot.Engines
         private IGuildRepository guildRepository;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// Constructs a new <see cref="WelcomeMessageEngine"/>.
         /// </summary>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
-        public WelcomeMessageEngine(IGuildRepository guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public WelcomeMessageEngine(IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
         {
             ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
             this.guildRepository = guildRepository;
+
+            ValidateArg.IsNotNull(slashCommandCache, nameof(slashCommandCache));
+            this.slashCommandCache = slashCommandCache;
         }
 
         /// <summary>
@@ -62,7 +72,8 @@ namespace Reiati.ChillBot.Engines
                 checkoutResult = await this.guildRepository.WaitForNotLockedCheckout(
                     user.Guild.Id,
                     HardCoded.Handlers.UserJoinLockedGuildTimeout,
-                    checkoutResult);
+                    checkoutResult)
+                    .ConfigureAwait(false);
                 switch (checkoutResult.Result)
                 {
                     case GuildCheckoutResult.ResultType.Success:
@@ -77,7 +88,8 @@ namespace Reiati.ChillBot.Engines
                                     guild.WelcomeChannel.GetValueOrDefault().Value);
                                 
                                 await welcomeChannel.SendMessageAsync(
-                                    WelcomeMessageEngine.GetWelcomeMessage(user.Guild, guild, user.Id));
+                                    await this.GetWelcomeMessage(user.Guild, guild, user.Id).ConfigureAwait(false))
+                                    .ConfigureAwait(false);
                             }
                         }
                     break;
@@ -109,7 +121,7 @@ namespace Reiati.ChillBot.Engines
         /// <param name="guild">Guild data.</param>
         /// <param name="userId">The id representing the user.</param>
         /// <returns>The welcome message to send.</returns>
-        private static string GetWelcomeMessage(SocketGuild guildConnection, Guild guild, Snowflake userId)
+        private async Task<string> GetWelcomeMessage(SocketGuild guildConnection, Guild guild, Snowflake userId)
         {
             var builder = welcomeMessageBuilderPool.Get();
             builder.Clear();
@@ -132,10 +144,23 @@ namespace Reiati.ChillBot.Engines
                                 builder.AppendFormat(" - {0}", textChannel.Topic);
                             }
                         }
+
+                        builder.Append("\nLet me know if you're interested in any of them by using a command like, \"");
+
+                        // Get the join slash command information
+                        SlashCommand joinSlashCommand = await this.slashCommandCache.GetSlashCommandInfoAsync<JoinOptinCommand>(guildConnection, nameof(JoinOptinCommand.JoinSlashCommand)).ConfigureAwait(false);
+                        if (joinSlashCommand != null)
+                        {
+                            builder.Append(joinSlashCommand.CommandLinkText);
+                        }
+                        else
+                        {
+                            builder.Append('/');
+                            builder.Append(JoinOptinCommand.CommandName);
+                        }
+
                         var exampleChannelName = optinChannelCategory.Channels.Last().Name;
-                        builder.AppendFormat(
-                            "\nLet me know if you're interested in any of them by using a command like, \"/join {0}\"",
-                            exampleChannelName);
+                        builder.AppendFormat(" {0}\"", exampleChannelName);
                     }
                 }
                 return builder.ToString();

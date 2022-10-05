@@ -1,7 +1,6 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -143,6 +142,10 @@ namespace Reiati.ChillBot
                     // Add services for caching opt-in channels
                     services.AddSingleton<IOptinChannelCache, OptinChannelMemoryCache>();
                     services.AddSingleton<IOptinChannelCacheManager, OptinChannelCacheManager>();
+
+                    // Add services for caching slash commands
+                    services.AddSingleton<ISlashCommandCache, SlashCommandMemoryCache>();
+                    services.AddSingleton<ISlashCommandCacheManager, SlashCommandCacheManager>();
 
                     // Add the main service for Chill Bot
                     services.AddHostedService<ChillBotService>();

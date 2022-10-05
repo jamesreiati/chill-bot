@@ -1,20 +1,20 @@
-﻿using Discord.WebSocket;
+﻿using Discord.Interactions;
+using Discord.WebSocket;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
-using static Reiati.ChillBot.Behavior.OptinChannel.ListResult;
 
 namespace Reiati.ChillBot.Data
 {
     /// <summary>
-    /// An object that manages a cache of opt-in channels by guild.
+    /// An object that manages a cache of slash command information by guild.
     /// </summary>
-    public class OptinChannelMemoryCache : GuildMemoryCache<IEnumerable<NameDescription>>, IOptinChannelCache
+    public class SlashCommandMemoryCache : GuildMemoryCache<IReadOnlyDictionary<SlashCommandInfo, SlashCommand>>, ISlashCommandCache
     {
         /// <summary>
-        /// Constructs a <see cref="OptinChannelMemoryCache"/>
+        /// Constructs a <see cref="SlashCommandMemoryCache"/>
         /// </summary>
-        /// <param name="memoryCache">The memory cache to use for caching opt-in channels.</param>
-        public OptinChannelMemoryCache(IMemoryCache memoryCache) : base(memoryCache)
+        /// <param name="memoryCache">The memory cache to use for caching slash commands.</param>
+        public SlashCommandMemoryCache(IMemoryCache memoryCache) : base(memoryCache)
         {
         }
 
@@ -30,7 +30,7 @@ namespace Reiati.ChillBot.Data
                 return default;
             }
 
-            return nameof(OptinChannelMemoryCache) + "_" + guild.Id.ToString();
+            return nameof(SlashCommandMemoryCache) + "_" + guild.Id.ToString();
         }
     }
 }

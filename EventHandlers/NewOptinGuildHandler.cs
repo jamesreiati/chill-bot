@@ -7,6 +7,7 @@ using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 using Microsoft.Extensions.Logging;
+using Reiati.ChillBot.Commands;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -52,14 +53,23 @@ namespace Reiati.ChillBot.EventHandlers
         private IGuildRepository guildRepository;
 
         /// <summary>
+        /// Cache for slash command details.
+        /// </summary>
+        private ISlashCommandCacheManager slashCommandCache;
+
+        /// <summary>
         /// Constructs a <see cref="NewOptinGuildHandler"/>.
         /// </summary>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
-        public NewOptinGuildHandler(IGuildRepository guildRepository)
+        /// <param name="slashCommandCache">Cache for slash command details.</param>
+        public NewOptinGuildHandler(IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
             : base(NewOptinGuildHandler.matcher)
         {
             ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
             this.guildRepository = guildRepository;
+
+            ValidateArg.IsNotNull(slashCommandCache, nameof(slashCommandCache));
+            this.slashCommandCache = slashCommandCache;
         }
 
         /// <summary>
@@ -80,26 +90,32 @@ namespace Reiati.ChillBot.EventHandlers
             {
                 await message.Channel.SendMessageAsync(
                     text: "The new channel's description must be something meaningful. Ideally something that explains what it is.",
-                    messageReference: messageReference);
+                    messageReference: messageReference)
+                    .ConfigureAwait(false);
                 return;
             }
 
             var checkoutResult = checkoutResultPool.Get();
             try
             {
-                checkoutResult = await this.guildRepository.Checkout(guildConnection.Id, checkoutResult);
+                checkoutResult = await this.guildRepository.Checkout(guildConnection.Id, checkoutResult).ConfigureAwait(false);
                 switch (checkoutResult.Result)
                 {
                     case GuildCheckoutResult.ResultType.Success:
                         using (var borrowedGuild = checkoutResult.BorrowedGuild)
                         {
+                            // Get the join slash command information
+                            SlashCommand joinSlashCommand = await this.slashCommandCache.GetSlashCommandInfoAsync<JoinOptinCommand>(guildConnection, nameof(JoinOptinCommand.JoinSlashCommand)).ConfigureAwait(false);
+
                             var guildData = borrowedGuild.Instance;
                             var createResult = await OptinChannel.Create(
                                 guildConnection: guildConnection,
                                 guildData: guildData,
                                 requestAuthor: author,
                                 channelName: channelName,
-                                description: description);
+                                description: description,
+                                joinCommandLink: joinSlashCommand?.CommandLinkText)
+                                .ConfigureAwait(false);
                             borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
 
                             switch (createResult)
