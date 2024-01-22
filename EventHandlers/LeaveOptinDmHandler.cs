@@ -112,7 +112,7 @@ namespace Reiati.ChillBot.EventHandlers
                                 channelName: channelName)
                                 .ConfigureAwait(false);
 
-                            switch (leaveResult)
+                            switch (leaveResult.ResultCode)
                             {
                                 case OptinChannel.LeaveResult.Success:
                                     await message.AddReactionAsync(LeaveOptinDmHandler.SuccessEmoji)
@@ -135,7 +135,7 @@ namespace Reiati.ChillBot.EventHandlers
                                 break;
 
                                 default:
-                                    throw new NotImplementedException(leaveResult.ToString());
+                                    throw new NotImplementedException(leaveResult.ResultCode.ToString());
                             }
                         }
                     break;

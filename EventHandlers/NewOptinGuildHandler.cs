@@ -116,9 +116,9 @@ namespace Reiati.ChillBot.EventHandlers
                                 description: description,
                                 joinCommandLink: joinSlashCommand?.CommandLinkText)
                                 .ConfigureAwait(false);
-                            borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
+                            borrowedGuild.Commit = createResult.ResultCode == OptinChannel.CreateResult.Success;
 
-                            switch (createResult)
+                            switch (createResult.ResultCode)
                             {
                                 case OptinChannel.CreateResult.Success:
                                     await message.AddReactionAsync(NewOptinGuildHandler.SuccessEmoji)
@@ -147,7 +147,7 @@ namespace Reiati.ChillBot.EventHandlers
                                 break;
 
                                 default:
-                                    throw new NotImplementedException(createResult.ToString());
+                                    throw new NotImplementedException(createResult.ResultCode.ToString());
                             }
                         }
                     break;

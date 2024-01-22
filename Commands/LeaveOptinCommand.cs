@@ -70,7 +70,7 @@ namespace Reiati.ChillBot.Commands
                                 channelName: channelName)
                                 .ConfigureAwait(false);
 
-                            switch (leaveResult)
+                            switch (leaveResult.ResultCode)
                             {
                                 case OptinChannel.LeaveResult.Success:
                                     await this.RespondAsync($"{LeaveOptinCommand.SuccessEmoji} You have left {channelName}.")
@@ -93,7 +93,7 @@ namespace Reiati.ChillBot.Commands
                                     break;
 
                                 default:
-                                    throw new NotImplementedException(leaveResult.ToString());
+                                    throw new NotImplementedException(leaveResult.ResultCode.ToString());
                             }
                         }
                         break;

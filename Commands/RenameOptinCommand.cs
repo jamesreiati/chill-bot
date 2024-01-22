@@ -71,15 +71,15 @@ namespace Reiati.ChillBot.Commands
                                 newChannelName: newChannelName,
                                 checkPermission: false); // Slash commands can have permissions configured by the server admin outside of the bot, so do not perform our own permission check
 
-                            borrowedGuild.Commit = renameResult == OptinChannel.RenameResult.Success;
+                            borrowedGuild.Commit = renameResult.ResultCode == OptinChannel.RenameResult.Success;
 
-                            switch (renameResult)
+                            switch (renameResult.ResultCode)
                             {
                                 case OptinChannel.RenameResult.Success:
                                     // Clear the opt-in channel cache for this guild since a opt-in channel was updated
                                     this.optinChannelCache.ClearCache(this.Context.Guild);
 
-                                    await this.RespondAsync($"{RenameOptinCommand.SuccessEmoji} Channel renamed.")
+                                    await this.RespondAsync($"{RenameOptinCommand.SuccessEmoji} Channel <#{renameResult.ChannelId}> renamed.")
                                         .ConfigureAwait(false);
                                     break;
 
@@ -106,7 +106,7 @@ namespace Reiati.ChillBot.Commands
                                     break;
 
                                 default:
-                                    throw new NotImplementedException(renameResult.ToString());
+                                    throw new NotImplementedException(renameResult.ResultCode.ToString());
                             }
                         }
                         break;
