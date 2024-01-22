@@ -91,15 +91,15 @@ namespace Reiati.ChillBot.Commands
                                 checkPermission: false,  // Slash commands can have permissions configured by the server admin, so do not perform our own permission check
                                 joinCommandLink: joinSlashCommand?.CommandLinkText)
                                 .ConfigureAwait(false);
-                            borrowedGuild.Commit = createResult == OptinChannel.CreateResult.Success;
+                            borrowedGuild.Commit = createResult.ResultCode == OptinChannel.CreateResult.Success;
 
-                            switch (createResult)
+                            switch (createResult.ResultCode)
                             {
                                 case OptinChannel.CreateResult.Success:
                                     // Clear the opt-in channel cache for this guild since a new opt-in channel was created
                                     this.optinChannelCache.ClearCache(this.Context.Guild);
 
-                                    await this.RespondAsync($"{CreateOptinCommand.SuccessEmoji} New channel created. Enjoy!")
+                                    await this.RespondAsync($"{CreateOptinCommand.SuccessEmoji} New channel <#{createResult.ChannelId}> created. Enjoy!")
                                         .ConfigureAwait(false);
                                     break;
 
@@ -121,7 +121,7 @@ namespace Reiati.ChillBot.Commands
                                     break;
 
                                 default:
-                                    throw new NotImplementedException(createResult.ToString());
+                                    throw new NotImplementedException(createResult.ResultCode.ToString());
                             }
                         }
                         break;

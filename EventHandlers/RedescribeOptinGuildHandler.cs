@@ -103,9 +103,9 @@ namespace Reiati.ChillBot.EventHandlers
                                 requestAuthor: author,
                                 channelName: channelName,
                                 description: description);
-                            borrowedGuild.Commit = updateResult == OptinChannel.UpdateDescriptionResult.Success;
+                            borrowedGuild.Commit = updateResult.ResultCode == OptinChannel.UpdateDescriptionResult.Success;
 
-                            switch (updateResult)
+                            switch (updateResult.ResultCode)
                             {
                                 case OptinChannel.UpdateDescriptionResult.Success:
                                     await message.AddReactionAsync(RedescribeOptinGuildHandler.SuccessEmoji);
@@ -130,7 +130,7 @@ namespace Reiati.ChillBot.EventHandlers
                                     break;
 
                                 default:
-                                    throw new NotImplementedException(updateResult.ToString());
+                                    throw new NotImplementedException(updateResult.ResultCode.ToString());
                             }
                         }
                         break;

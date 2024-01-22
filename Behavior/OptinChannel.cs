@@ -6,6 +6,7 @@ using Discord;
 using Discord.WebSocket;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
+using static Reiati.ChillBot.Behavior.OptinChannel;
 
 namespace Reiati.ChillBot.Behavior
 {
@@ -35,7 +36,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <param name="joinCommandLink">An optional link to the join command that can be used to join the new channel.</param>
         /// <returns>The result of the request.</returns>
-        public static async Task<CreateResult> Create(
+        public static async Task<OptinChannelOperationResult<CreateResult>> Create(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
@@ -48,7 +49,7 @@ namespace Reiati.ChillBot.Behavior
 
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return CreateResult.NoOptinCategory;
+                return CreateResult.NoOptinCategory.ToOptinChannelOperationResult();
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
@@ -61,7 +62,7 @@ namespace Reiati.ChillBot.Behavior
                     allowedRoles: guildData.OptinCreatorsRoles);
                 if (!hasPermission)
                 {
-                    return CreateResult.NoPermissions;
+                    return CreateResult.NoPermissions.ToOptinChannelOperationResult();
                 }
             }
 
@@ -71,7 +72,7 @@ namespace Reiati.ChillBot.Behavior
                 .Any(x => string.Compare(x, channelName, ignoreCase: true) == 0);
             if (alreadyExists)
             {
-                return CreateResult.ChannelNameUsed;
+                return CreateResult.ChannelNameUsed.ToOptinChannelOperationResult();
             }
 
             var createdTextChannel = await guildConnection.CreateTextChannelAsync(channelName, settings =>
@@ -103,7 +104,7 @@ namespace Reiati.ChillBot.Behavior
                 joinCommandLink: joinCommandLink)
                 .ConfigureAwait(false);
 
-            return CreateResult.Success;
+            return CreateResult.Success.ToOptinChannelOperationResult(createdTextChannel.Id);
         }
 
         /// <summary>
@@ -118,7 +119,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="newChannelName">The requested new name of the channel. May not be null.</param>
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
-        public static async Task<RenameResult> Rename(
+        public static async Task<OptinChannelOperationResult<RenameResult>> Rename(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
@@ -131,7 +132,7 @@ namespace Reiati.ChillBot.Behavior
 
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return RenameResult.NoOptinCategory;
+                return RenameResult.NoOptinCategory.ToOptinChannelOperationResult();
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
@@ -143,7 +144,7 @@ namespace Reiati.ChillBot.Behavior
                     allowedRoles: guildData.OptinUpdatersRoles);
                 if (!hasPermission)
                 {
-                    return RenameResult.NoPermissions;
+                    return RenameResult.NoPermissions.ToOptinChannelOperationResult();
                 }
             }
 
@@ -156,7 +157,7 @@ namespace Reiati.ChillBot.Behavior
                 .SingleOrDefault();
             if (currentChannel == default)
             {
-                return RenameResult.NoSuchChannel;
+                return RenameResult.NoSuchChannel.ToOptinChannelOperationResult();
             }
 
             // Verify the new channel name is not already in use
@@ -165,7 +166,7 @@ namespace Reiati.ChillBot.Behavior
                 .Any(x => string.Compare(x, newChannelName, ignoreCase: true) == 0);
             if (newChannelAlreadyExists)
             {
-                return RenameResult.NewChannelNameUsed;
+                return RenameResult.NewChannelNameUsed.ToOptinChannelOperationResult();
             }
 
             // Modify the channel name
@@ -182,7 +183,7 @@ namespace Reiati.ChillBot.Behavior
                 newChannelName: newChannelName)
                 .ConfigureAwait(false);
 
-            return RenameResult.Success;
+            return RenameResult.Success.ToOptinChannelOperationResult(currentChannel.Id);
         }
 
         /// <summary>
@@ -197,7 +198,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="description">The requested description of the channel.</param>
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
-        public static async Task<UpdateDescriptionResult> UpdateDescription(
+        public static async Task<OptinChannelOperationResult<UpdateDescriptionResult>> UpdateDescription(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
@@ -209,7 +210,7 @@ namespace Reiati.ChillBot.Behavior
 
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return UpdateDescriptionResult.NoOptinCategory;
+                return UpdateDescriptionResult.NoOptinCategory.ToOptinChannelOperationResult();
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
@@ -221,7 +222,7 @@ namespace Reiati.ChillBot.Behavior
                     allowedRoles: guildData.OptinUpdatersRoles);
                 if (!hasPermission)
                 {
-                    return UpdateDescriptionResult.NoPermissions;
+                    return UpdateDescriptionResult.NoPermissions.ToOptinChannelOperationResult();
                 }
             }
 
@@ -234,7 +235,7 @@ namespace Reiati.ChillBot.Behavior
                 .SingleOrDefault();
             if (currentChannel == default)
             {
-                return UpdateDescriptionResult.NoSuchChannel;
+                return UpdateDescriptionResult.NoSuchChannel.ToOptinChannelOperationResult();
             }
 
             // Modify the channel description
@@ -256,7 +257,7 @@ namespace Reiati.ChillBot.Behavior
                     .ConfigureAwait(false);
             }
 
-            return UpdateDescriptionResult.Success;
+            return UpdateDescriptionResult.Success.ToOptinChannelOperationResult(currentChannel.Id);
         }
 
         /// <summary>
@@ -269,7 +270,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the join channel request. May not be null.</param>
         /// <param name="channelName">The name of the channel to join.</param>
         /// <returns>The result of the request.</returns>
-        public static async Task<JoinResult> Join(
+        public static async Task<OptinChannelOperationResult<JoinResult>> Join(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
@@ -277,7 +278,7 @@ namespace Reiati.ChillBot.Behavior
         {
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return JoinResult.NoOptinCategory;
+                return JoinResult.NoOptinCategory.ToOptinChannelOperationResult();
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
@@ -287,7 +288,7 @@ namespace Reiati.ChillBot.Behavior
 
             if (requestedChannel == null)
             {
-                return JoinResult.NoSuchChannel;
+                return JoinResult.NoSuchChannel.ToOptinChannelOperationResult();
             }
             
             var associatedRoleName = OptinChannel.GetRoleName(requestedChannel.Id);
@@ -296,11 +297,11 @@ namespace Reiati.ChillBot.Behavior
 
             if (role == null)
             {
-                return JoinResult.RoleMissing;
+                return JoinResult.RoleMissing.ToOptinChannelOperationResult(requestedChannel.Id);
             }
 
             await requestAuthor.AddRoleAsync(role).ConfigureAwait(false);
-            return JoinResult.Success;
+            return JoinResult.Success.ToOptinChannelOperationResult(requestedChannel.Id);
         }
 
 
@@ -314,7 +315,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="requestAuthor">The author of the join channel request. May not be null.</param>
         /// <param name="channelName">The name of the channel to join.</param>
         /// <returns>The result of the request.</returns>
-        public static async Task<LeaveResult> Leave(
+        public static async Task<OptinChannelOperationResult<LeaveResult>> Leave(
             SocketGuild guildConnection,
             Guild guildData,
             SocketGuildUser requestAuthor,
@@ -322,7 +323,7 @@ namespace Reiati.ChillBot.Behavior
         {
             if (!guildData.OptinParentCategory.HasValue)
             {
-                return LeaveResult.NoOptinCategory;
+                return LeaveResult.NoOptinCategory.ToOptinChannelOperationResult();
             }
             var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
@@ -332,7 +333,7 @@ namespace Reiati.ChillBot.Behavior
 
             if (requestedChannel == null)
             {
-                return LeaveResult.NoSuchChannel;
+                return LeaveResult.NoSuchChannel.ToOptinChannelOperationResult();
             }
             
             var associatedRoleName = OptinChannel.GetRoleName(requestedChannel.Id);
@@ -341,11 +342,11 @@ namespace Reiati.ChillBot.Behavior
 
             if (role == null)
             {
-                return LeaveResult.RoleMissing;
+                return LeaveResult.RoleMissing.ToOptinChannelOperationResult(requestedChannel.Id);
             }
 
             await requestAuthor.RemoveRoleAsync(role).ConfigureAwait(false);
-            return LeaveResult.Success;
+            return LeaveResult.Success.ToOptinChannelOperationResult(requestedChannel.Id);
         }
 
         /// <summary>
@@ -384,7 +385,44 @@ namespace Reiati.ChillBot.Behavior
         {
             return "chill-" + optinChannel.Value;
         }
-        
+
+        /// <summary>
+        /// Result type of an operation performed on an <see cref="OptinChannel"/>.
+        /// </summary>
+        public readonly struct OptinChannelOperationResult<TResult> where TResult : struct, Enum
+        {
+            /// <summary>Result code representing more details about the success or failure of the optin channel operation</summary>
+            public TResult ResultCode { get; init; }
+
+            /// <summary>If the operation was successful, the channel ID associated with the optin channel operation</summary>
+            public ulong ChannelId { get; init; }
+
+            /// <summary>
+            /// Constructs a <see cref="OptinChannelOperationResult{TResult}"/>.
+            /// </summary>
+            /// <param name="resultCode">Result code representing more details about the success or failure of the optin channel operation</param>
+            /// <param name="channelId">If the operation was successful, the channel ID associated with the optin channel operation</param>
+            public OptinChannelOperationResult(TResult resultCode, ulong channelId)
+            {
+                this.ResultCode = resultCode;
+                this.ChannelId = channelId;
+            }
+
+            /// <summary>
+            /// Constructs a <see cref="OptinChannelOperationResult{TResult}"/>.
+            /// </summary>
+            /// <param name="resultCode">Result code representing more details about the success or failure of the optin channel operation</param>
+            public OptinChannelOperationResult(TResult resultCode)
+                : this(resultCode, default)
+            {
+            }
+
+            public override string ToString()
+            {
+                return this.ResultCode.ToString();
+            }
+        }
+
         /// <summary>
         /// Result type of a <see cref="OptinChannel.Create(SocketGuild, Guild, SocketGuildUser, string, string)"/>
         /// call.
@@ -571,6 +609,35 @@ namespace Reiati.ChillBot.Behavior
                     this.description = description;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Extension methods to help work with <see cref="OptinChannelOperationResult{TResult}"/>.
+    /// </summary>
+    internal static class OptinChannelOperationResultExtensions
+    {
+        /// <summary>
+        /// Convert an operation result code into a <see cref="OptinChannelOperationResult{TResult}"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The type representing the possible result codes of the operation.</typeparam>
+        /// <param name="resultCode">Result code representing more details about the success or failure of the optin channel operation</param>
+        /// <param name="channelId">The channel ID associated with the optin channel operation</param>
+        /// <returns>A new <see cref="OptinChannelOperationResult{TResult}"/></returns>
+        public static OptinChannelOperationResult<TResult> ToOptinChannelOperationResult<TResult>(this TResult resultCode, ulong channelId) where TResult : struct, Enum
+        {
+            return new OptinChannelOperationResult<TResult>(resultCode, channelId);
+        }
+
+        /// <summary>
+        /// Convert an operation result code into a <see cref="OptinChannelOperationResult{TResult}"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The type representing the possible result codes of the operation.</typeparam>
+        /// <param name="resultCode">Result code representing more details about the success or failure of the optin channel operation</param>
+        /// <returns>A new <see cref="OptinChannelOperationResult{TResult}"/></returns>
+        public static OptinChannelOperationResult<TResult> ToOptinChannelOperationResult<TResult>(this TResult resultCode) where TResult : struct, Enum
+        {
+            return new OptinChannelOperationResult<TResult>(resultCode);
         }
     }
 }

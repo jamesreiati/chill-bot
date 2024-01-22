@@ -61,12 +61,12 @@ namespace Reiati.ChillBot.Commands
                                 guildData: guildData,
                                 requestAuthor: this.Context.User as SocketGuildUser,
                                 channelName: channelName);
-                            borrowedGuild.Commit = joinResult == OptinChannel.JoinResult.Success;
+                            borrowedGuild.Commit = joinResult.ResultCode == OptinChannel.JoinResult.Success;
 
-                            switch (joinResult)
+                            switch (joinResult.ResultCode)
                             {
                                 case OptinChannel.JoinResult.Success:
-                                    await this.RespondAsync($"{JoinOptinCommand.SuccessEmoji} Welcome to {channelName}!")
+                                    await this.RespondAsync($"{JoinOptinCommand.SuccessEmoji} Welcome to <#{joinResult.ChannelId}>!")
                                         .ConfigureAwait(false);
                                     break;
 
@@ -89,7 +89,7 @@ namespace Reiati.ChillBot.Commands
                                     break;
 
                                 default:
-                                    throw new NotImplementedException(joinResult.ToString());
+                                    throw new NotImplementedException(joinResult.ResultCode.ToString());
                             }
                         }
                         break;
