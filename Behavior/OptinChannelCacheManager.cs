@@ -1,4 +1,4 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Data;
@@ -82,7 +82,7 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="guild">The connection to the guild for querying opt-in channels.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The borrowed opt-in channel list.</returns>
-        public async Task<OptinChannelCacheResult> GetChannels(SocketGuild guild, OptinChannelCacheResult recycleResult = null)
+        public async Task<OptinChannelCacheResult> GetChannels(IGuild guild, OptinChannelCacheResult recycleResult = null)
         {
             OptinChannelCacheResult retVal = recycleResult ?? new OptinChannelCacheResult();
 
@@ -104,7 +104,7 @@ namespace Reiati.ChillBot.Behavior
                                 borrowedGuild.Commit = false;
                                 var guildData = borrowedGuild.Instance;
 
-                                listResult = OptinChannel.List(guild, guildData, listResult);
+                                listResult = await OptinChannel.List(guild, guildData, listResult).ConfigureAwait(false);
 
                                 switch (listResult.Result)
                                 {
@@ -160,7 +160,7 @@ namespace Reiati.ChillBot.Behavior
         /// Removes the specified guild ID from the cache. It will need to be queried from Discord the next time it is requested.
         /// </summary>
         /// <param name="guild">The connection to the guild to remove from the cache.</param>
-        public void ClearCache(SocketGuild guild)
+        public void ClearCache(IGuild guild)
         {
             this.optinChannelCache.Remove(guild);
         }

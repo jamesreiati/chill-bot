@@ -1,4 +1,6 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -53,7 +55,7 @@ namespace Reiati.ChillBot.Services
         /// <summary>
         /// The client used to connect to Discord.
         /// </summary>
-        private DiscordShardedClient client;
+        private IDiscordClient client;
 
         /// <summary>
         /// The service for registering Discord commands.
@@ -69,7 +71,7 @@ namespace Reiati.ChillBot.Services
         /// <param name="serviceProvider">Application service provider.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         /// <param name="slashCommandCache">Cache for slash command details.</param>
-        public ChillBotService(DiscordShardedClient client, InteractionService interactionService, IConfiguration configuration, IServiceProvider serviceProvider, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
+        public ChillBotService(IDiscordClient client, InteractionService interactionService, IConfiguration configuration, IServiceProvider serviceProvider, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
         {
             this.client = client;
             this.interactionService = interactionService;
@@ -108,21 +110,32 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the client has been initialized and started.</returns>
         private async Task InitializeClient()
         {
-            this.client.Log += ChillBotService.ForwardLogToLogging;
-            this.client.ShardConnected += ChillBotService.ProcessShardConnected;
-            this.client.ShardReady += this.ProcessShardReady;
-            this.client.InteractionCreated += this.ProcessInteractionCreated;
+            if (this.client is DiscordShardedClient shardedClient)
+            {
+                shardedClient.ShardConnected += ChillBotService.ProcessShardConnected;
+                shardedClient.ShardReady += this.ProcessShardReady;
+            }
 
-            var messageHandler = new CommandEngine(client, this.guildRepository, this.slashCommandCache);
-            var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository, this.slashCommandCache);
+            if (this.client is BaseSocketClient socketClient)
+            {
+                socketClient.InteractionCreated += this.ProcessInteractionCreated;
 
-            this.client.MessageReceived += messageHandler.HandleMessageReceived;
-            this.client.UserJoined += userJoinedHandler.HandleUserJoin;
-            this.client.GuildAvailable += ChillBotService.BeginMembersDownload;
+                var messageHandler = new CommandEngine(client, this.guildRepository, this.slashCommandCache);
+                var userJoinedHandler = new WelcomeMessageEngine(this.guildRepository, this.slashCommandCache);
 
-            string token = configuration[HardCoded.Config.DiscordTokenConfigKey];
+                socketClient.MessageReceived += messageHandler.HandleMessageReceived;
+                socketClient.UserJoined += userJoinedHandler.HandleUserJoin;
+                socketClient.GuildAvailable += ChillBotService.BeginMembersDownload;
+            }
 
-            await this.client.LoginAsync(Discord.TokenType.Bot, token.Trim()).ConfigureAwait(false);
+            if (this.client is BaseDiscordClient baseDiscordClient)
+            {
+                baseDiscordClient.Log += ChillBotService.ForwardLogToLogging;
+
+                string token = configuration[HardCoded.Config.DiscordTokenConfigKey];
+                await baseDiscordClient.LoginAsync(Discord.TokenType.Bot, token.Trim()).ConfigureAwait(false);
+            }
+
             await this.client.StartAsync().ConfigureAwait(false);
         }
 
@@ -186,7 +199,7 @@ namespace Reiati.ChillBot.Services
         /// <returns>When the task has completed.</returns>
         private async Task ProcessInteractionCreated(SocketInteraction interaction)
         {
-            var context = new ShardedInteractionContext(this.client, interaction);
+            var context = new InteractionContext(this.client, interaction);
             await this.interactionService.ExecuteCommandAsync(context, this.serviceProvider).ConfigureAwait(false);
         }
 

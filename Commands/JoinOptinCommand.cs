@@ -1,5 +1,5 @@
-﻿using Discord.Interactions;
-using Discord.WebSocket;
+﻿using Discord;
+using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
@@ -59,7 +59,7 @@ namespace Reiati.ChillBot.Commands
                             var joinResult = await OptinChannel.Join(
                                 guildConnection: this.Context.Guild,
                                 guildData: guildData,
-                                requestAuthor: this.Context.User as SocketGuildUser,
+                                requestAuthor: this.Context.User as IGuildUser,
                                 channelName: channelName);
                             borrowedGuild.Commit = joinResult == OptinChannel.JoinResult.Success;
 

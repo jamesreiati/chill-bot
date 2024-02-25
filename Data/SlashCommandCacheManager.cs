@@ -1,7 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.Rest;
-using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Tools;
 using System;
@@ -25,7 +23,7 @@ namespace Reiati.ChillBot.Data
         /// <summary>
         /// The client used to connect to Discord.
         /// </summary>
-        private DiscordShardedClient client;
+        private IDiscordClient client;
 
         /// <summary>
         /// The service for registering and reading Discord commands.
@@ -44,7 +42,7 @@ namespace Reiati.ChillBot.Data
         /// <param name="client">The client used to connect to Discord.</param>
         /// <param name="interactionService">The service for registering and reading Discord commands.</param>
         /// <param name="slashCommandCache">Cache of slash commands.</param>
-        public SlashCommandCacheManager(ILogger<SlashCommandCacheManager> logger, DiscordShardedClient client, InteractionService interactionService, ISlashCommandCache slashCommandCache)
+        public SlashCommandCacheManager(ILogger<SlashCommandCacheManager> logger, IDiscordClient client, InteractionService interactionService, ISlashCommandCache slashCommandCache)
         {
             ValidateArg.IsNotNull(logger, nameof(logger));
             this.logger = logger;
@@ -64,7 +62,7 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="guild">The connection to the guild for querying slash commands.</param>
         /// <returns>The slash command information for the guild.</returns>
-        public async Task<IReadOnlyCollection<SlashCommand>> GetAllSlashCommandsAsync(SocketGuild guild)
+        public async Task<IReadOnlyCollection<SlashCommand>> GetAllSlashCommandsAsync(IGuild guild)
         {
             IReadOnlyDictionary<SlashCommandInfo, SlashCommand> commands = await this.GetSlashCommandDictionary(guild).ConfigureAwait(false);
             return new ReadOnlyCollection<SlashCommand>(commands.Values.ToList());
@@ -77,7 +75,7 @@ namespace Reiati.ChillBot.Data
         /// <param name="guild">The connection to the guild for querying slash commands.</param>
         /// <param name="methodName">Method name of the slash command handler, use of <see cref="nameof"/> is recommended.</param>
         /// <returns>The slash command information for the guild.</returns>
-        public async Task<SlashCommand> GetSlashCommandInfoAsync<TModule>(SocketGuild guild, string methodName) where TModule : class
+        public async Task<SlashCommand> GetSlashCommandInfoAsync<TModule>(IGuild guild, string methodName) where TModule : class
         {
             try
             {
@@ -106,21 +104,21 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="guild">The connection to the guild for querying slash commands.</param>
         /// <returns>The dictionary of slash command information for the guild.</returns>
-        protected async Task<IReadOnlyDictionary<SlashCommandInfo, SlashCommand>> GetSlashCommandDictionary(SocketGuild guild)
+        protected async Task<IReadOnlyDictionary<SlashCommandInfo, SlashCommand>> GetSlashCommandDictionary(IGuild guild)
         {
             try
             {
                 if (!this.slashCommandCache.TryGetValue(guild, out IReadOnlyDictionary<SlashCommandInfo, SlashCommand> slashCommands))
                 {
                     // Read all of the application commands from Discord
-                    IReadOnlyCollection<RestGlobalCommand> restGlobalCommands = await this.client.Rest.GetGlobalApplicationCommands().ConfigureAwait(false);
-                    IReadOnlyCollection<RestGuildCommand> restGuildCommands = await this.client.Rest.GetGuildApplicationCommands(guild.Id).ConfigureAwait(false);
-                    List<RestApplicationCommand> allRestSlashCommands = restGlobalCommands.Cast<RestApplicationCommand>().Concat(restGuildCommands).Where(c => c.Type == ApplicationCommandType.Slash).ToList();
+                    IReadOnlyCollection<IApplicationCommand> restGlobalCommands = await this.client.GetGlobalApplicationCommandsAsync().ConfigureAwait(false);
+                    IReadOnlyCollection<IApplicationCommand> restGuildCommands = await guild.GetApplicationCommandsAsync().ConfigureAwait(false);
+                    List<IApplicationCommand> allSlashCommands = restGlobalCommands.Concat(restGuildCommands).Where(c => c.Type == ApplicationCommandType.Slash).ToList();
 
                     // Construct the dictionary of slash commands
                     var slashCommandDictionary = this.interactionService.SlashCommands.ToDictionary(
                         slashCommandInfo => slashCommandInfo,
-                        slashCommandInfo => new SlashCommand(allRestSlashCommands.FirstOrDefault(restCommand => string.Equals(restCommand.Name, slashCommandInfo.Name, StringComparison.OrdinalIgnoreCase))?.Id ?? SlashCommand.UnknownId, slashCommandInfo));
+                        slashCommandInfo => new SlashCommand(allSlashCommands.FirstOrDefault(slashCommand => string.Equals(slashCommand.Name, slashCommandInfo.Name, StringComparison.OrdinalIgnoreCase))?.Id ?? SlashCommand.UnknownId, slashCommandInfo));
 
                     slashCommands = new ReadOnlyDictionary<SlashCommandInfo, SlashCommand>(slashCommandDictionary);
 

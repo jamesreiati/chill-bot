@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
@@ -50,7 +49,7 @@ namespace Reiati.ChillBot.Behavior
             {
                 string userInput = autocompleteInteraction.Data.Current.Value.ToString();
 
-                optinChannelCacheResult = await this.optinChannelCache.GetChannels(context.Guild as SocketGuild, optinChannelCacheResult);
+                optinChannelCacheResult = await this.optinChannelCache.GetChannels(context.Guild, optinChannelCacheResult);
                 switch (optinChannelCacheResult.Result)
                 {
                     case OptinChannelCacheResult.ResultType.Success:

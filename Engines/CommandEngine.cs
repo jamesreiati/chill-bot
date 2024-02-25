@@ -46,7 +46,7 @@ namespace Reiati.ChillBot.Engines
         /// <summary>
         /// A discord client to make queries to.
         /// </summary>
-        private readonly BaseSocketClient discordClient;
+        private readonly IDiscordClient discordClient;
 
         /// <summary>
         /// A list of all the message handlers for direct messages.
@@ -74,7 +74,7 @@ namespace Reiati.ChillBot.Engines
         /// <param name="discordClient">A client to interact with discord. May not be null.</param>
         /// <param name="guildRepository">The repository used to read and write <see cref="Guild"/>s.</param>
         /// <param name="slashCommandCache">Cache for slash command details.</param>
-        public CommandEngine(BaseSocketClient discordClient, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
+        public CommandEngine(IDiscordClient discordClient, IGuildRepository guildRepository, ISlashCommandCacheManager slashCommandCache)
         {
             ValidateArg.IsNotNull(discordClient, nameof(discordClient));
             ValidateArg.IsNotNull(guildRepository, nameof(guildRepository));
@@ -114,7 +114,7 @@ namespace Reiati.ChillBot.Engines
         /// </summary>
         /// <param name="message">The message received.</param>
         /// <returns>When the message has been handled.</returns>
-        public async Task HandleMessageReceived(SocketMessage message)
+        public async Task HandleMessageReceived(IMessage message)
         {
             if (message == null)
             {
@@ -128,14 +128,14 @@ namespace Reiati.ChillBot.Engines
                 return;
             }
 
-            var guildChannel = message.Channel as SocketGuildChannel;
+            var guildChannel = message.Channel as IGuildChannel;
             if (guildChannel != null)
             {
                 await this.HandleGuildMessage(message).ConfigureAwait(false);
                 return;
             }
 
-            var dmChannel = message.Channel as SocketDMChannel;
+            var dmChannel = message.Channel as IDMChannel;
             if (dmChannel != null)
             {
                 await this.HandleDirectMessage(message).ConfigureAwait(false);
@@ -150,9 +150,9 @@ namespace Reiati.ChillBot.Engines
         /// </summary>
         /// <param name="message">The message sent. May not be null.</param>
         /// <returns>When the message has been handled.</returns>
-        private async Task HandleGuildMessage(SocketMessage message)
+        private async Task HandleGuildMessage(IMessage message)
         {
-            if (!message.MentionedUsers.Any(x => x.Id == this.botId.Value))
+            if (!message.MentionedUserIds.Any(x => x == this.botId.Value))
             {
                 return;
             }
@@ -165,9 +165,9 @@ namespace Reiati.ChillBot.Engines
         /// </summary>
         /// <param name="message">The message sent. May not be null.</param>
         /// <returns>When the message has been handled.</returns>
-        private async Task HandleDirectMessage(SocketMessage message)
+        private async Task HandleDirectMessage(IMessage message)
         {
-            if (message.Author.MutualGuilds.Count <= 0)
+            if (message.Author is SocketUser author && author.MutualGuilds.Count <= 0)
             {
                 return;
             }
@@ -182,7 +182,7 @@ namespace Reiati.ChillBot.Engines
         /// <param name="message">The message from the user. May not be null.</param>
         /// <param name="handlers">Any list of handlers. May not be null.</param>
         /// <returns>When the message has been handled.</returns>
-        private async Task HandleMessage(SocketMessage message, IReadOnlyList<IMessageHandler> handlers)
+        private async Task HandleMessage(IMessage message, IReadOnlyList<IMessageHandler> handlers)
         {
             var handleResult = CommandEngine.handleResultPool.Get();
             try

@@ -1,4 +1,4 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 using static Reiati.ChillBot.Behavior.OptinChannel.ListResult;
@@ -23,7 +23,7 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="guild">The guild whose key should be returned.</param>
         /// <returns>The key corresponding to the provided <paramref name="guild"/> in the cache.</returns>
-        protected override string GetCacheKey(SocketGuild guild)
+        protected override string GetCacheKey(IGuild guild)
         {
             if (guild == null)
             {

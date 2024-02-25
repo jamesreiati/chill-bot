@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Discord.WebSocket;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
 
@@ -36,9 +35,9 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="joinCommandLink">An optional link to the join command that can be used to join the new channel.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<CreateResult> Create(
-            SocketGuild guildConnection,
+            IGuild guildConnection,
             Guild guildData,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName,
             string description,
             bool checkPermission = true,
@@ -50,14 +49,13 @@ namespace Reiati.ChillBot.Behavior
             {
                 return CreateResult.NoOptinCategory;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            // TODO: requestAuthor.Roles gets cached. How do I refresh this value so that it's accurate?
+            // TODO: requestAuthor.RoleIds gets cached. How do I refresh this value so that it's accurate?
 
             if (checkPermission)
             {
                 var hasPermission = PermissionsUtilities.HasPermission(
-                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    userRoles: requestAuthor.RoleIds.Select(x => new Snowflake(x)),
                     allowedRoles: guildData.OptinCreatorsRoles);
                 if (!hasPermission)
                 {
@@ -65,8 +63,10 @@ namespace Reiati.ChillBot.Behavior
                 }
             }
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
-            var alreadyExists = optinsCategoryConnection.Channels
+            var channels = await guildConnection.GetChannelsAsync().ConfigureAwait(false);
+            var alreadyExists = channels
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory)
                 .Select(x => x.Name)
                 .Any(x => string.Compare(x, channelName, ignoreCase: true) == 0);
             if (alreadyExists)
@@ -76,7 +76,7 @@ namespace Reiati.ChillBot.Behavior
 
             var createdTextChannel = await guildConnection.CreateTextChannelAsync(channelName, settings =>
             {
-                settings.CategoryId = optinsCategory.Value;
+                settings.CategoryId = guildData.OptinParentCategory.GetValueOrDefault().Value;
                 settings.Topic = description ?? string.Empty;
             }).ConfigureAwait(false);
 
@@ -119,9 +119,9 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<RenameResult> Rename(
-            SocketGuild guildConnection,
+            IGuild guildConnection,
             Guild guildData,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string currentChannelName,
             string newChannelName,
             bool checkPermission = true)
@@ -133,13 +133,12 @@ namespace Reiati.ChillBot.Behavior
             {
                 return RenameResult.NoOptinCategory;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
             if (checkPermission)
             {
                 // Check that the request author has permission to update opt-ins
                 var hasPermission = PermissionsUtilities.HasPermission(
-                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    userRoles: requestAuthor.RoleIds.Select(x => new Snowflake(x)),
                     allowedRoles: guildData.OptinUpdatersRoles);
                 if (!hasPermission)
                 {
@@ -147,12 +146,14 @@ namespace Reiati.ChillBot.Behavior
                 }
             }
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var optinsCategoryChannels = (await guildConnection.GetChannelsAsync().ConfigureAwait(false))
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory);
 
             // Try to get the channel to rename and verify it exists
-            var currentChannel = optinsCategoryConnection.Channels
-                .Where(x => string.Compare(x.Name, currentChannelName, ignoreCase: true) == 0 && x is SocketTextChannel)
-                .Cast<SocketTextChannel>()
+            var currentChannel = optinsCategoryChannels
+                .Where(x => string.Compare(x.Name, currentChannelName, ignoreCase: true) == 0)
+                .OfType<ITextChannel>()
                 .SingleOrDefault();
             if (currentChannel == default)
             {
@@ -160,7 +161,7 @@ namespace Reiati.ChillBot.Behavior
             }
 
             // Verify the new channel name is not already in use
-            var newChannelAlreadyExists = optinsCategoryConnection.Channels
+            var newChannelAlreadyExists = optinsCategoryChannels
                 .Select(x => x.Name)
                 .Any(x => string.Compare(x, newChannelName, ignoreCase: true) == 0);
             if (newChannelAlreadyExists)
@@ -198,9 +199,9 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="checkPermission">Whether to check if the user has permission to perform this action.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<UpdateDescriptionResult> UpdateDescription(
-            SocketGuild guildConnection,
+            IGuild guildConnection,
             Guild guildData,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName,
             string description,
             bool checkPermission = true)
@@ -211,13 +212,12 @@ namespace Reiati.ChillBot.Behavior
             {
                 return UpdateDescriptionResult.NoOptinCategory;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
             if (checkPermission)
             {
                 // Check that the request author has permission to update opt-ins
                 var hasPermission = PermissionsUtilities.HasPermission(
-                    userRoles: requestAuthor.Roles.Select(x => new Snowflake(x.Id)),
+                    userRoles: requestAuthor.RoleIds.Select(x => new Snowflake(x)),
                     allowedRoles: guildData.OptinUpdatersRoles);
                 if (!hasPermission)
                 {
@@ -225,12 +225,14 @@ namespace Reiati.ChillBot.Behavior
                 }
             }
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var channels = await guildConnection.GetChannelsAsync().ConfigureAwait(false);
 
             // Try to get the channel to update and verify it exists
-            var currentChannel = optinsCategoryConnection.Channels
-                .Where(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0 && x is SocketTextChannel)
-                .Cast<SocketTextChannel>()
+            var currentChannel = channels
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory)
+                .Where(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0)
+                .OfType<ITextChannel>()
                 .SingleOrDefault();
             if (currentChannel == default)
             {
@@ -270,19 +272,20 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="channelName">The name of the channel to join.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<JoinResult> Join(
-            SocketGuild guildConnection,
+            IGuild guildConnection,
             Guild guildData,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName)
         {
             if (!guildData.OptinParentCategory.HasValue)
             {
                 return JoinResult.NoOptinCategory;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
-            var requestedChannel = optinsCategoryConnection.Channels
+            var channels = await guildConnection.GetChannelsAsync().ConfigureAwait(false);
+            var requestedChannel = channels
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory)
                 .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0);
 
             if (requestedChannel == null)
@@ -315,19 +318,20 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="channelName">The name of the channel to join.</param>
         /// <returns>The result of the request.</returns>
         public static async Task<LeaveResult> Leave(
-            SocketGuild guildConnection,
+            IGuild guildConnection,
             Guild guildData,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName)
         {
             if (!guildData.OptinParentCategory.HasValue)
             {
                 return LeaveResult.NoOptinCategory;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
-            var requestedChannel = optinsCategoryConnection.Channels
+            var channels = await guildConnection.GetChannelsAsync().ConfigureAwait(false);
+            var requestedChannel = channels
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory)
                 .FirstOrDefault(x => string.Compare(x.Name, channelName, ignoreCase: true) == 0);
 
             if (requestedChannel == null)
@@ -355,8 +359,8 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="guildData">Information about this guild. May not be null.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>All of the names and descriptions opt-in channels.</returns>
-        public static ListResult List(
-            SocketGuild guildConnection,
+        public static async Task<ListResult> List(
+            IGuild guildConnection,
             Guild guildData,
             ListResult recycleResult = null)
         {
@@ -366,12 +370,14 @@ namespace Reiati.ChillBot.Behavior
                 retVal.ToNoOptinCategory();
                 return retVal;
             }
-            var optinsCategory = guildData.OptinParentCategory.GetValueOrDefault();
 
-            var optinsCategoryConnection = guildConnection.GetCategoryChannel(optinsCategory.Value);
+            var optinsCategoryChannels = (await guildConnection.GetChannelsAsync().ConfigureAwait(false))
+                .OfType<INestedChannel>()
+                .Where(c => c.CategoryId == guildData.OptinParentCategory);
+
             retVal.ToSuccess(
-                optinsCategoryConnection.Channels
-                .Select(x => new Tuple<string, string>(x.Name, x is SocketTextChannel textChannel ? textChannel.Topic : string.Empty)));
+                optinsCategoryChannels
+                .Select(x => new Tuple<string, string>(x.Name, x is ITextChannel textChannel ? textChannel.Topic : string.Empty)));
             return retVal;
         }
 
@@ -386,7 +392,7 @@ namespace Reiati.ChillBot.Behavior
         }
         
         /// <summary>
-        /// Result type of a <see cref="OptinChannel.Create(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// Result type of a <see cref="OptinChannel.Create(IGuild, Guild, IGuildUser, string, string)"/>
         /// call.
         /// </summary>
         public enum CreateResult
@@ -405,7 +411,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// Result type of a <see cref="OptinChannel.Rename(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// Result type of a <see cref="OptinChannel.Rename(IGuild, Guild, IGuildUser, string, string)"/>
         /// call.
         /// </summary>
         public enum RenameResult
@@ -427,7 +433,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// Result type of a <see cref="OptinChannel.UpdateDescription(SocketGuild, Guild, SocketGuildUser, string, string)"/>
+        /// Result type of a <see cref="OptinChannel.UpdateDescription(IGuild, Guild, IGuildUser, string, string)"/>
         /// call.
         /// </summary>
         public enum UpdateDescriptionResult
@@ -446,7 +452,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// Result type of a <see cref="OptinChannel.Join(SocketGuild, Guild, SocketGuildUser, string)"/> call.
+        /// Result type of a <see cref="OptinChannel.Join(IGuild, Guild, IGuildUser, string)"/> call.
         /// </summary>
         public enum JoinResult
         {
@@ -464,7 +470,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// Result type of a <see cref="OptinChannel.Join(SocketGuild, Guild, SocketGuildUser, string)"/> call.
+        /// Result type of a <see cref="OptinChannel.Join(IGuild, Guild, IGuildUser, string)"/> call.
         /// </summary>
         public enum LeaveResult
         {
@@ -482,7 +488,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// The result of a <see cref="OptinChannel.List(SocketGuild, Guild, ListResult)"/> call.
+        /// The result of a <see cref="OptinChannel.List(IGuild, Guild, ListResult)"/> call.
         /// </summary>
         public sealed class ListResult
         {
@@ -534,7 +540,7 @@ namespace Reiati.ChillBot.Behavior
             }
 
             /// <summary>
-            /// The result of a <see cref="OptinChannel.List(SocketGuild, Guild, ListResult)"/> call.
+            /// The result of a <see cref="OptinChannel.List(IGuild, Guild, ListResult)"/> call.
             /// </summary>
             public enum ResultType
             {

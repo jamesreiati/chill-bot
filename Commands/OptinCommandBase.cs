@@ -10,7 +10,7 @@ namespace Reiati.ChillBot.Commands
     /// <summary>
     /// Base class responsible for handling commands in a guild, related to opt-in channels.
     /// </summary>
-    public abstract class OptinCommandBase : InteractionModuleBase<ShardedInteractionContext>
+    public abstract class OptinCommandBase : InteractionModuleBase<IInteractionContext>
     {
         #region Pools
 
