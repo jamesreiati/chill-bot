@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
@@ -85,7 +84,7 @@ namespace Reiati.ChillBot.Commands
                             var createResult = await OptinChannel.Create(
                                 guildConnection: this.Context.Guild,
                                 guildData: guildData,
-                                requestAuthor: this.Context.User as SocketGuildUser,
+                                requestAuthor: this.Context.User as IGuildUser,
                                 channelName: channelName,
                                 description: channelDescription,
                                 checkPermission: false,  // Slash commands can have permissions configured by the server admin, so do not perform our own permission check

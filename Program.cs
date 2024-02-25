@@ -130,6 +130,9 @@ namespace Reiati.ChillBot
                     services.AddSingleton(socketConfig);
                     services.AddSingleton<DiscordShardedClient>();
 
+                    // If the IDiscordClient interface is requested, get the same DiscordShardedClient instance registered above
+                    services.AddSingleton<IDiscordClient>(s => s.GetRequiredService<DiscordShardedClient>());
+
                     // Add services and configuration for the Discord interaction service that handles application commands.
                     var interactionServiceConfig = new InteractionServiceConfig
                     {

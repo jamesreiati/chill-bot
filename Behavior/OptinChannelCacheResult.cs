@@ -4,7 +4,7 @@ using static Reiati.ChillBot.Behavior.OptinChannel.ListResult;
 namespace Reiati.ChillBot.Behavior
 {
     /// <summary>
-    /// The result of a <see cref="OptinChannelCacheManager.GetChannels(Discord.WebSocket.SocketGuild)"/> call.
+    /// The result of a <see cref="OptinChannelCacheManager.GetChannels(Discord.IGuild)"/> call.
     /// </summary>
     public sealed class OptinChannelCacheResult
     {
@@ -68,7 +68,7 @@ namespace Reiati.ChillBot.Behavior
         }
 
         /// <summary>
-        /// The result of a <see cref="OptinChannelCacheManager.GetChannels(Discord.WebSocket.SocketGuild)"/> call.
+        /// The result of a <see cref="OptinChannelCacheManager.GetChannels(Discord.IGuild)"/> call.
         /// </summary>
         public enum ResultType
         {

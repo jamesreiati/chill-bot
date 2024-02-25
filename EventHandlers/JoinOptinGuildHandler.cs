@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Discord;
-using Discord.WebSocket;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
@@ -69,10 +68,10 @@ namespace Reiati.ChillBot.EventHandlers
         /// <param name="message">The message received.</param>
         /// <param name="handleCache">The match object returned from the regex match.</param>
         /// <returns>The handle task.</returns>
-        protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
+        protected override async Task HandleMatchedMessage(IMessage message, Match handleCache)
         {
-            var messageChannel = message.Channel as SocketGuildChannel;
-            var author = message.Author as SocketGuildUser;
+            var messageChannel = message.Channel as IGuildChannel;
+            var author = message.Author as IGuildUser;
             var guildConnection = messageChannel.Guild;
             var messageReference = new MessageReference(message.Id, messageChannel.Id, guildConnection.Id);
             var channelName = handleCache.Groups["channel"].Captures[0].Value;

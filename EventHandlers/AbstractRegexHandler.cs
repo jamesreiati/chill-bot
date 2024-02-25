@@ -1,8 +1,7 @@
-using System;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
-using Discord.WebSocket;
 using Reiati.ChillBot.Tools;
+using Discord;
 
 namespace Reiati.ChillBot.EventHandlers
 {
@@ -30,7 +29,7 @@ namespace Reiati.ChillBot.EventHandlers
 
         /// <inheritdoc/>
         async Task<CanHandleResult> IMessageHandler.CanHandleMessage(
-            SocketMessage message,
+            IMessage message,
             CanHandleResult recycleResult)
         {
             var result = recycleResult ?? new CanHandleResult();
@@ -58,7 +57,7 @@ namespace Reiati.ChillBot.EventHandlers
         #pragma warning restore 1998 // This async method lacks 'await' operators and will run synchronously.
 
         /// <inheritdoc/>
-        Task IMessageHandler.HandleMessage(SocketMessage message, object handleCache)
+        Task IMessageHandler.HandleMessage(IMessage message, object handleCache)
         {
             return HandleMatchedMessage(message, (Match)handleCache);
         }
@@ -69,6 +68,6 @@ namespace Reiati.ChillBot.EventHandlers
         /// <param name="message">The message received.</param>
         /// <param name="handleCache">The match object returned from the regex match.</param>
         /// <returns>The handle task.</returns>
-        abstract protected Task HandleMatchedMessage(SocketMessage message, Match handleCache);
+        abstract protected Task HandleMatchedMessage(IMessage message, Match handleCache);
     }
 }

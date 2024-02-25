@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
@@ -66,7 +65,7 @@ namespace Reiati.ChillBot.Commands
                             var leaveResult = await OptinChannel.Leave(
                                 guildConnection: this.Context.Guild,
                                 guildData: guildData,
-                                requestAuthor: this.Context.User as SocketGuildUser,
+                                requestAuthor: this.Context.User as IGuildUser,
                                 channelName: channelName)
                                 .ConfigureAwait(false);
 

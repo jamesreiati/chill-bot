@@ -1,4 +1,4 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
 using System.Threading.Tasks;
 
 namespace Reiati.ChillBot.Behavior
@@ -14,12 +14,12 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="guild">The connection to the guild for querying opt-in channels.</param>
         /// <param name="recycleResult">A preallocated result that should be returned if passed in.</param>
         /// <returns>The borrowed opt-in channel list.</returns>
-        Task<OptinChannelCacheResult> GetChannels(SocketGuild guild, OptinChannelCacheResult recycleResult);
+        Task<OptinChannelCacheResult> GetChannels(IGuild guild, OptinChannelCacheResult recycleResult);
 
         /// <summary>
         /// Removes the specified guild ID from the cache. It will need to be queried from Discord the next time it is requested.
         /// </summary>
         /// <param name="guild">The connection to the guild to remove from the cache.</param>
-        void ClearCache(SocketGuild guild);
+        void ClearCache(IGuild guild);
     }
 }

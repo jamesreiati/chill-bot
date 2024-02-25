@@ -1,4 +1,4 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
 using Microsoft.Extensions.Caching.Memory;
 using Reiati.ChillBot.Tools;
 using System;
@@ -31,7 +31,7 @@ namespace Reiati.ChillBot.Data
         /// <param name="guild">The guild whose <typeparamref name="TItem"/> should be retrieved from the cache.</param>
         /// <param name="value">The <typeparamref name="TItem"/> for the provided <paramref name="guild"/>, if it was present in the cache.</param>
         /// <returns>Whether the <typeparamref name="TItem"/> for the guild was present in the cache.</returns>
-        public virtual bool TryGetValue(SocketGuild guild, out TItem value)
+        public virtual bool TryGetValue(IGuild guild, out TItem value)
         {
             if (guild == null)
             {
@@ -48,7 +48,7 @@ namespace Reiati.ChillBot.Data
         /// <param name="guild">The guild whose <typeparamref name="TItem"/> should be set in the cache.</param>
         /// <param name="value">The <typeparamref name="TItem"/> to set in the cache for this guild.</param>
         /// <returns>The value that was set.</returns>
-        public virtual TItem Set(SocketGuild guild, TItem value)
+        public virtual TItem Set(IGuild guild, TItem value)
         {
             if (guild == null)
             {
@@ -65,7 +65,7 @@ namespace Reiati.ChillBot.Data
         /// <param name="value">The <typeparamref name="TItem"/> to set in the cache for this guild.</param>
         /// <param name="absoluteExpirationRelativeToNow">The expiration time in absolute terms relative to the current time.</param>
         /// <returns>The value that was set.</returns>
-        public virtual TItem Set(SocketGuild guild, TItem value, TimeSpan absoluteExpirationRelativeToNow)
+        public virtual TItem Set(IGuild guild, TItem value, TimeSpan absoluteExpirationRelativeToNow)
         {
             if (guild == null)
             {
@@ -79,7 +79,7 @@ namespace Reiati.ChillBot.Data
         /// Removes the <typeparamref name="TItem"/> associated with the given guild from the cache.
         /// </summary>
         /// <param name="guild">The guild whose <typeparamref name="TItem"/> should be remove from the cache.</param>
-        public virtual void Remove(SocketGuild guild)
+        public virtual void Remove(IGuild guild)
         {
             if (guild == null)
             {
@@ -94,6 +94,6 @@ namespace Reiati.ChillBot.Data
         /// </summary>
         /// <param name="guild">The guild whose key should be returned.</param>
         /// <returns>The key corresponding to the provided <paramref name="guild"/> in the cache.</returns>
-        protected abstract string GetCacheKey(SocketGuild guild);
+        protected abstract string GetCacheKey(IGuild guild);
     }
 }

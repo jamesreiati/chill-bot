@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
-using Discord.WebSocket;
 using Reiati.ChillBot.Behavior;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
@@ -79,9 +78,9 @@ namespace Reiati.ChillBot.EventHandlers
         /// <param name="message">The message received.</param>
         /// <param name="handleCache">The match object returned from the regex match.</param>
         /// <returns>The handle task.</returns>
-        protected override async Task HandleMatchedMessage(SocketMessage message, Match handleCache)
+        protected override async Task HandleMatchedMessage(IMessage message, Match handleCache)
         {
-            var messageChannel = message.Channel as SocketGuildChannel;
+            var messageChannel = message.Channel as IGuildChannel;
             var guildConnection = messageChannel.Guild;
             var messageReference = new MessageReference(message.Id, messageChannel.Id, guildConnection.Id);
 
@@ -141,13 +140,13 @@ namespace Reiati.ChillBot.EventHandlers
         /// <param name="guildConnection">A connection to the guild. May not be null.</param>
         /// <param name="guildData">The guild data. May not be null.</param>
         /// <returns>When listing has completed.</returns>
-        private static async Task ListOptinChannels(SocketMessage message, SocketGuild guildConnection, Guild guildData)
+        private static async Task ListOptinChannels(IMessage message, IGuild guildConnection, Guild guildData)
         {
             var messageReference = new MessageReference(message.Id, message.Channel.Id, guildConnection.Id);
             var listResult = listResultPool.Get();
             try
             {
-                listResult = OptinChannel.List(guildConnection, guildData, listResult);
+                listResult = await OptinChannel.List(guildConnection, guildData, listResult).ConfigureAwait(false);
 
                 switch (listResult.Result)
                 {

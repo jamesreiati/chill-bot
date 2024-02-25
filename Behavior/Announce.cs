@@ -1,4 +1,4 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
 using Reiati.ChillBot.Commands;
 using Reiati.ChillBot.Data;
 using Reiati.ChillBot.Tools;
@@ -22,7 +22,7 @@ namespace Reiati.ChillBot.Behavior
         /// <returns>A task indicating completion.</returns>
         public static async Task ChannelCreation(
             Guild guild,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName,
             string channelDescription,
             string joinCommandLink = null)
@@ -58,7 +58,7 @@ namespace Reiati.ChillBot.Behavior
         /// <returns>A task indicating completion.</returns>
         public static async Task ChannelRename(
             Guild guild,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string oldChannelName,
             string newChannelName)
         {
@@ -83,7 +83,7 @@ namespace Reiati.ChillBot.Behavior
         /// <returns>A task indicating completion.</returns>
         public static async Task ChannelRedescribe(
             Guild guild,
-            SocketGuildUser requestAuthor,
+            IGuildUser requestAuthor,
             string channelName,
             string oldDescription,
             string newDescription)
@@ -124,9 +124,9 @@ namespace Reiati.ChillBot.Behavior
         /// <param name="guild">Information about the guild. May not be null.</param>
         /// <param name="message">The announcement message to send.</param>
         /// <returns>A task indicating completion.</returns>
-        private static async Task SendAnnouncementMessageAsync(SocketGuild guildConnection, Guild guild, string message)
+        private static async Task SendAnnouncementMessageAsync(IGuild guildConnection, Guild guild, string message)
         {
-            if (TryGetAnnouncementChannel(guildConnection, guild, out SocketTextChannel announcementChannel))
+            if (await TryGetAnnouncementChannel(guildConnection, guild).ConfigureAwait(false) is (true, ITextChannel announcementChannel))
             {
                 await announcementChannel.SendMessageAsync(
                     text: message,
@@ -140,26 +140,25 @@ namespace Reiati.ChillBot.Behavior
         /// </summary>
         /// <param name="guildConnection">The connection to the guild to search for the announcement channel. May not be null.</param>
         /// <param name="guild">Information about the guild. May not be null.</param>
-        /// <param name="announcementChannel">The announcement channel, if one is configured and exists.</param>
-        /// <returns>Whether the announcement channel was obtained for the provided guild.</returns>
-        private static bool TryGetAnnouncementChannel(SocketGuild guildConnection, Guild guild, out SocketTextChannel announcementChannel)
+        /// <returns>Tuple of whether the announcement channel was obtained for the provided guild and the announcement channel, if one is configured and exists.</returns>
+        private static async Task<(bool, ITextChannel)> TryGetAnnouncementChannel(IGuild guildConnection, Guild guild)
         {
-            announcementChannel = default;
+            ITextChannel announcementChannel = default;
 
             if (guild.AnnouncementChannel.HasValue)
             {
                 try
                 {
-                    announcementChannel = guildConnection.GetTextChannel(guild.AnnouncementChannel.Value.Value);
-                    return true;
+                    announcementChannel = await guildConnection.GetTextChannelAsync(guild.AnnouncementChannel.Value.Value).ConfigureAwait(false);
+                    return (true, announcementChannel);
                 }
                 catch
                 {
-                    return false;
+                    return (false, announcementChannel);
                 }
             }
 
-            return false;
+            return (false, announcementChannel);
         }
     }
 }
